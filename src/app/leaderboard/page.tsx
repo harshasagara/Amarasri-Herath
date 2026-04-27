@@ -219,11 +219,11 @@ export default function LeaderboardPage() {
           className="flex flex-col md:flex-row md:items-center justify-between gap-6"
         >
           <div>
-            <h1 className="text-4xl font-black tracking-tight text-white flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-                <Trophy className="w-8 h-8 text-white" />
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-3">
+              <div className="p-2 bg-blue-600 rounded-xl shadow-[0_0_20px_rgba(37,99,235,0.4)] shrink-0">
+                <Trophy className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
-              MeritView <span className="text-blue-500">Ranking</span>
+              Leaderboard
             </h1>
             <p className="text-slate-500 mt-2 font-medium">Examination Leaderboard & Performance Analytics</p>
           </div>

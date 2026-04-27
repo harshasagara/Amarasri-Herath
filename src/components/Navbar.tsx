@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   ArrowLeft,
+  Maximize,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
 
@@ -176,8 +177,8 @@ export function Navbar() {
             </motion.div>
           </div>
 
-          {/* Brand text — hidden on very small screens */}
-          <div className="hidden xs:flex sm:flex flex-col leading-tight gap-0.5 min-w-0">
+          {/* Brand text — visible on all screens now */}
+          <div className="flex flex-col leading-tight gap-0.5 min-w-0">
             <span
               className="font-black tracking-tight truncate"
               style={{
@@ -374,6 +375,32 @@ export function Navbar() {
                 </motion.div>
               );
             })}
+
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: visibleNavItems.length * 0.06 }}
+              onClick={() => {
+                setIsOpen(false);
+                const docElm = document.documentElement;
+                if (docElm.requestFullscreen) {
+                  docElm.requestFullscreen().then(() => {
+                    if (screen.orientation && screen.orientation.lock) {
+                      screen.orientation.lock("landscape").catch(e => console.log(e));
+                    }
+                  }).catch(e => console.log(e));
+                }
+              }}
+              className="flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold transition-all w-full text-left"
+              style={{
+                color: "rgba(255,255,255,0.7)",
+                border: "1px solid rgba(255,255,255,0.05)",
+                background: "rgba(255,255,255,0.02)",
+              }}
+            >
+              <Maximize className="w-5 h-5 flex-shrink-0" />
+              Landscape Mode (16:9)
+            </motion.button>
 
             {/* Bottom badge in mobile */}
             <div className="mt-auto flex items-center justify-center gap-2 py-3">
