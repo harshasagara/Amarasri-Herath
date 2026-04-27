@@ -280,20 +280,23 @@ export default function LeaderboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8 pt-4 border-t border-white/5">
-            <Toggle 
-              label="IQ SCORE" 
-              active={toggles.iq} 
-              onToggle={() => setToggles({...toggles, iq: !toggles.iq})} 
-            />
-            <Toggle 
-              label="GK SCORE" 
-              active={toggles.gk} 
-              onToggle={() => setToggles({...toggles, gk: !toggles.gk})} 
-            />
-            <div className="ml-auto text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-              <Filter className="w-3.5 h-3.5" />
-              Active Filters: <span className="text-blue-500">{filters.subject}</span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-8 pt-4 border-t border-white/5">
+            <div className="flex items-center gap-6">
+              <Toggle 
+                label="IQ SCORE" 
+                active={toggles.iq} 
+                onToggle={() => setToggles({...toggles, iq: !toggles.iq})} 
+              />
+              <Toggle 
+                label="GK SCORE" 
+                active={toggles.gk} 
+                onToggle={() => setToggles({...toggles, gk: !toggles.gk})} 
+              />
+            </div>
+            <div className="sm:ml-auto text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2 flex-wrap">
+              <Filter className="w-3.5 h-3.5 shrink-0" />
+              <span className="shrink-0">Active Filters:</span> 
+              <span className="text-blue-500 truncate max-w-[150px] sm:max-w-[300px]">{filters.subject}</span>
             </div>
           </div>
         </motion.div>
@@ -305,7 +308,7 @@ export default function LeaderboardPage() {
           transition={{ delay: 0.2 }}
           className="glass-panel border-white/5 overflow-hidden bg-slate-900/40 shadow-2xl"
         >
-          <div className="overflow-x-auto custom-scrollbar">
+          <div className="overflow-x-auto custom-scrollbar w-full">
             <table className="w-full text-left border-collapse min-w-[800px]">
               <thead>
                 <tr className="bg-slate-950/60 border-b border-white/5 sticky top-0 z-10 backdrop-blur-xl">
@@ -391,11 +394,11 @@ export default function LeaderboardPage() {
           
           {/* Table Footer */}
           {!loading && (
-            <div className="px-6 py-4 bg-slate-950/40 border-t border-white/5 flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-widest">
+            <div className="px-6 py-4 bg-slate-950/40 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center sm:text-left">
               <div>Total Results: <span className="text-white">{filteredData.length}</span></div>
               <div className="flex items-center gap-4">
-                <span>4K Precision UI</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+                <span className="hidden sm:inline">4K Precision UI</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse hidden sm:inline"></span>
                 <span>Real-time Data Sync</span>
               </div>
             </div>
