@@ -1,15 +1,125 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain, Zap, Star, TrendingUp, Award } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
-
 import { PROVINCES, PROVINCE_DISTRICTS } from "@/lib/regions";
+import { loadStudentStats, type StudentStats, type Achievement } from "@/lib/gamification";
 
+// ── XP Level Bar ──────────────────────────────────────────────────────────────
+function XPBar({ stats }: { stats: StudentStats }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full max-w-lg"
+    >
+      <div
+        className="rounded-2xl p-4"
+        style={{
+          background: "rgba(8,14,30,0.7)",
+          border: "1px solid rgba(99,102,241,0.3)",
+          boxShadow: "0 0 30px rgba(99,102,241,0.08)",
+        }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Level {stats.level}</p>
+              <p className="text-sm font-bold text-white">{stats.levelTitle}</p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-black text-indigo-400">{stats.xp} <span className="text-xs text-slate-500">XP</span></p>
+          </div>
+        </div>
+        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${stats.levelProgress}%` }}
+            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
+            className="h-full rounded-full"
+            style={{ background: "linear-gradient(90deg, #6366f1, #818cf8)" }}
+          />
+        </div>
+        <p className="text-[10px] text-slate-600 mt-1 text-right font-bold uppercase tracking-wider">{stats.levelProgress}% to next level</p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Achievement Badge ─────────────────────────────────────────────────────────
+function AchievementBadge({ a }: { a: Achievement }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ scale: 1.05 }}
+      className="flex flex-col items-center gap-1 p-3 rounded-xl transition-all"
+      style={{
+        background: a.unlocked ? `${a.color}14` : "rgba(255,255,255,0.02)",
+        border: `1px solid ${a.unlocked ? `${a.color}40` : "rgba(255,255,255,0.06)"}`,
+        opacity: a.unlocked ? 1 : 0.4,
+      }}
+      title={a.description}
+    >
+      <span className="text-2xl" style={{ filter: a.unlocked ? "none" : "grayscale(1)" }}>{a.icon}</span>
+      <p className="text-[9px] font-black text-center uppercase tracking-wider" style={{ color: a.unlocked ? a.color : "#475569" }}>{a.title}</p>
+    </motion.div>
+  );
+}
+
+// ── AI Insight Card ───────────────────────────────────────────────────────────
+function AIInsight({ iq, gk }: { iq: number | null; gk: number | null }) {
+  const total = (iq ?? 0) + (gk ?? 0);
+  const hasBoth = iq !== null && gk !== null;
+
+  let message = "Complete both papers to unlock your AI performance insight.";
+  let color = "#6366f1";
+  let icon = "🤖";
+
+  if (hasBoth) {
+    if (total >= 180) { message = "Outstanding! You're in the top 5% of candidates. Elite performance across both papers."; color = "#fbbf24"; icon = "🏆"; }
+    else if (total >= 160) { message = "Excellent work! A strong balanced performance. Push for 180+ to reach the Elite tier."; color = "#10b981"; icon = "🚀"; }
+    else if (total >= 120) { message = "Good progress! Focus on your weaker paper to break into the High Achiever bracket."; color = "#3b82f6"; icon = "📈"; }
+    else { message = "Keep practicing! Consistent effort will significantly improve your scores over time."; color = "#DC143C"; icon = "💪"; }
+  } else if (iq !== null) {
+    message = `IQ paper done (${iq}/100). Complete the GK paper to unlock your full AI insight.`;
+    color = "#DC143C"; icon = "🧠";
+  } else if (gk !== null) {
+    message = `GK paper done (${gk}/100). Complete the IQ paper to unlock your full AI insight.`;
+    color = "#6366f1"; icon = "🌍";
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="w-full max-w-lg rounded-2xl p-4 flex items-start gap-3"
+      style={{
+        background: "rgba(8,14,30,0.65)",
+        border: `1px solid ${color}30`,
+        boxShadow: `0 0 20px ${color}10`,
+      }}
+    >
+      <span className="text-2xl flex-shrink-0 mt-0.5">{icon}</span>
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-widest mb-1" style={{ color }}>AI Insight</p>
+        <p className="text-sm text-slate-300 leading-relaxed">{message}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [user, setUser] = useState<{ nic: string, name: string, province: string, district: string } | null>(null);
+  const [user, setUser] = useState<{ nic: string; name: string; province: string; district: string } | null>(null);
   const [nic, setNic] = useState("");
   const [name, setName] = useState("");
   const [province, setProvince] = useState("");
@@ -20,31 +130,33 @@ export default function Dashboard() {
   const [scores, setScores] = useState<{ iq: number | null; gk: number | null }>({ iq: null, gk: null });
   const [submittedIQ, setSubmittedIQ] = useState(false);
   const [submittedGK, setSubmittedGK] = useState(false);
+  const [stats, setStats] = useState<StudentStats | null>(null);
+  const [showAchievements, setShowAchievements] = useState(false);
+
+  const loadAll = (u: { nic: string; name: string; province: string; district: string }) => {
+    const sc = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
+    setScores({ iq: sc.iq ?? null, gk: sc.gk ?? null });
+    setSubmittedIQ(localStorage.getItem(`submittedIQ_${u.nic}`) === "true");
+    setSubmittedGK(localStorage.getItem(`submittedGK_${u.nic}`) === "true");
+    setStats(loadStudentStats(u.nic));
+  };
 
   useEffect(() => {
     const savedUser = localStorage.getItem("studentUser");
     if (savedUser) {
       const u = JSON.parse(savedUser);
       setUser(u);
-      // Load scores
-      const sc = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
-      setScores({ iq: sc.iq ?? null, gk: sc.gk ?? null });
-      setSubmittedIQ(localStorage.getItem(`submittedIQ_${u.nic}`) === "true");
-      setSubmittedGK(localStorage.getItem(`submittedGK_${u.nic}`) === "true");
+      loadAll(u);
     }
-    const disabled = localStorage.getItem("submissionsDisabled") === "true";
-    setSubmissionsDisabled(disabled);
+    setSubmissionsDisabled(localStorage.getItem("submissionsDisabled") === "true");
     setIsLoaded(true);
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
     if (nic && name && province && district) {
-      const usersStr = localStorage.getItem("registeredUsers") || "{}";
-      const registeredUsers = JSON.parse(usersStr);
-
+      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
       if (registeredUsers[nic]) {
         if (registeredUsers[nic].trim().toLowerCase() !== name.trim().toLowerCase()) {
           setError("The name entered does not match our records for this ID Number.");
@@ -54,16 +166,10 @@ export default function Dashboard() {
         registeredUsers[nic] = name.trim();
         localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
       }
-
       const newUser = { nic, name: name.trim(), province, district };
       localStorage.setItem("studentUser", JSON.stringify(newUser));
       setUser(newUser);
-
-      // Load scores for new login
-      const sc = JSON.parse(localStorage.getItem(`studentScores_${nic}`) || "{}");
-      setScores({ iq: sc.iq ?? null, gk: sc.gk ?? null });
-      setSubmittedIQ(localStorage.getItem(`submittedIQ_${nic}`) === "true");
-      setSubmittedGK(localStorage.getItem(`submittedGK_${nic}`) === "true");
+      loadAll(newUser);
     }
   };
 
@@ -73,10 +179,12 @@ export default function Dashboard() {
     setScores({ iq: null, gk: null });
     setSubmittedIQ(false);
     setSubmittedGK(false);
+    setStats(null);
   };
 
   if (!isLoaded) return null;
 
+  // ── Login Form ──────────────────────────────────────────────────────────────
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] py-12">
@@ -90,67 +198,33 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-white">Student Login</h1>
             <p className="text-slate-400 mt-2">Enter your credentials to access the exams.</p>
           </div>
-
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-slate-300">ID Number (NIC)</label>
-            <input
-              required
-              type="text"
-              value={nic}
-              onChange={(e) => setNic(e.target.value)}
-              className="glass-input"
-              placeholder="Enter NIC"
-            />
+            <input required type="text" value={nic} onChange={(e) => setNic(e.target.value)} className="glass-input" placeholder="Enter NIC" />
           </div>
-
           <div className="flex flex-col gap-2">
             <label className="text-sm font-semibold text-slate-300">Full Name</label>
-            <input
-              required
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="glass-input"
-              placeholder="Enter Full Name"
-            />
+            <input required type="text" value={name} onChange={(e) => setName(e.target.value)} className="glass-input" placeholder="Enter Full Name" />
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-300">Province</label>
-              <select 
-                required
-                value={province}
-                onChange={(e) => {
-                  setProvince(e.target.value);
-                  setDistrict("");
-                }}
-                className="glass-input appearance-none bg-slate-900"
-              >
+              <select required value={province} onChange={(e) => { setProvince(e.target.value); setDistrict(""); }} className="glass-input appearance-none bg-slate-900">
                 <option value="">Select</option>
                 {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-sm font-semibold text-slate-300">District</label>
-              <select 
-                required
-                value={district}
-                onChange={(e) => setDistrict(e.target.value)}
-                className="glass-input appearance-none bg-slate-900"
-              >
+              <select required value={district} onChange={(e) => setDistrict(e.target.value)} className="glass-input appearance-none bg-slate-900">
                 <option value="">Select</option>
                 {province && (PROVINCE_DISTRICTS[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
           </div>
-
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">
-              {error}
-            </div>
+            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">{error}</div>
           )}
-
           <button type="submit" className="mt-4 py-3.5 rounded-xl bg-primary text-white font-bold uppercase tracking-wider hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
             <Lock className="w-5 h-5" /> Secure Login
           </button>
@@ -163,85 +237,73 @@ export default function Dashboard() {
   const bothDone = submittedIQ && submittedGK;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] landscape:min-h-0 gap-6 md:gap-10 landscape:gap-4 relative">
-      <button
-        onClick={handleLogout}
-        className="absolute top-0 right-0 flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
-      >
+    <div className="flex flex-col items-center gap-6 md:gap-8 relative pb-8">
+      {/* Logout */}
+      <button onClick={handleLogout} className="absolute top-0 right-0 flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
         <LogOut className="w-4 h-4" /> Logout
       </button>
 
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-2">
-          Welcome, <span className="text-primary">{user.name}</span>
-        </h1>
+      {/* Welcome */}
+      <div className="text-center pt-2">
+        <h1 className="text-4xl font-bold mb-2">Welcome, <span className="text-primary">{user.name}</span></h1>
         <p className="text-slate-400 text-lg">
-          {submissionsDisabled
-            ? "Exam period has ended. Thank you for participating."
-            : "Select the answer sheet you wish to complete."}
+          {submissionsDisabled ? "Exam period has ended. Thank you for participating." : "Select the answer sheet you wish to complete."}
         </p>
       </div>
 
-      {/* Score summary card — shown when at least one paper done */}
+      {/* XP Level Bar */}
+      {stats && <XPBar stats={stats} />}
+
+      {/* Score Summary */}
       {(submittedIQ || submittedGK) && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-lg"
-        >
-          <div
-            className="rounded-2xl p-5"
-            style={{
-              background: "rgba(8,14,30,0.65)",
-              border: "1px solid rgba(220,20,60,0.25)",
-              boxShadow: "0 0 30px rgba(220,20,60,0.08)",
-            }}
-          >
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
+          <div className="rounded-2xl p-5" style={{ background: "rgba(8,14,30,0.65)", border: "1px solid rgba(220,20,60,0.25)", boxShadow: "0 0 30px rgba(220,20,60,0.08)" }}>
             <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Your Score Summary</p>
             <div className="grid grid-cols-3 gap-4 text-center">
-              {/* IQ */}
               <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1">
-                  <Brain className="w-5 h-5 text-primary" />
-                </div>
-                <span className="text-2xl font-black text-primary">
-                  {submittedIQ ? (scores.iq ?? 0) : "—"}
-                </span>
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1"><Brain className="w-5 h-5 text-primary" /></div>
+                <span className="text-2xl font-black text-primary">{submittedIQ ? (scores.iq ?? 0) : "—"}</span>
                 <span className="text-[10px] text-slate-500 font-bold uppercase">IQ / 100</span>
               </div>
-
-              {/* GK */}
               <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-1">
-                  <Globe className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-2xl font-black text-white">
-                  {submittedGK ? (scores.gk ?? 0) : "—"}
-                </span>
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-1"><Globe className="w-5 h-5 text-white" /></div>
+                <span className="text-2xl font-black text-white">{submittedGK ? (scores.gk ?? 0) : "—"}</span>
                 <span className="text-[10px] text-slate-500 font-bold uppercase">GK / 100</span>
               </div>
-
-              {/* Total */}
               <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-1">
-                  <Trophy className="w-5 h-5 text-yellow-500" />
-                </div>
-                <span className={clsx("text-2xl font-black", bothDone ? "text-yellow-400" : "text-slate-500")}>
-                  {bothDone ? totalScore : "—"}
-                </span>
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-1"><Trophy className="w-5 h-5 text-yellow-500" /></div>
+                <span className={clsx("text-2xl font-black", bothDone ? "text-yellow-400" : "text-slate-500")}>{bothDone ? totalScore : "—"}</span>
                 <span className="text-[10px] text-slate-500 font-bold uppercase">Total / 200</span>
               </div>
             </div>
-
-            {!bothDone && (
-              <p className="text-center text-xs text-slate-600 mt-4">
-                Complete both papers to see your total score.
-              </p>
-            )}
+            {!bothDone && <p className="text-center text-xs text-slate-600 mt-4">Complete both papers to see your total score.</p>}
           </div>
         </motion.div>
       )}
 
+      {/* AI Insight */}
+      {(submittedIQ || submittedGK) && <AIInsight iq={scores.iq} gk={scores.gk} />}
+
+      {/* Achievements */}
+      {stats && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="w-full max-w-lg">
+          <button onClick={() => setShowAchievements(v => !v)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors mb-3">
+            <Award className="w-3.5 h-3.5" />
+            Achievements ({stats.achievements.filter(a => a.unlocked).length}/{stats.achievements.length})
+            <span className="ml-1">{showAchievements ? "▲" : "▼"}</span>
+          </button>
+          <AnimatePresence>
+            {showAchievements && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                className="grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-hidden">
+                {stats.achievements.map(a => <AchievementBadge key={a.id} a={a} />)}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
+
+      {/* Exam Cards */}
       <div className="w-full max-w-4xl">
         {submissionsDisabled ? (
           <div className="flex flex-col items-center gap-8">
@@ -249,59 +311,50 @@ export default function Dashboard() {
               <p className="font-medium">Submissions are now closed.</p>
               <p className="text-sm text-slate-500 mt-1">Please view the global rankings on the leaderboard.</p>
             </div>
-            <Link
-              href="/leaderboard"
-              className="px-10 py-4 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors flex items-center gap-3 shadow-sm"
-            >
+            <Link href="/leaderboard" className="px-10 py-4 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors flex items-center gap-3 shadow-sm">
               <Trophy className="w-5 h-5 text-yellow-500" /> View Leaderboard
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Link
-              href="/entry?type=iq"
-              className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedIQ ? "opacity-70" : "hover:border-primary/40")}
-            >
-              {submittedIQ && (
-                <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  ✓ Done
-                </div>
-              )}
-              <div className="p-4 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                <BrainCircuit className="w-12 h-12" />
-              </div>
+            <Link href="/entry?type=iq" className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedIQ ? "opacity-70" : "hover:border-primary/40")}>
+              {submittedIQ && <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Done</div>}
+              <div className="p-4 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors"><BrainCircuit className="w-12 h-12" /></div>
               <div className="text-center">
                 <h2 className="text-2xl font-bold">IQ Answer Sheet</h2>
                 <p className="text-slate-500 text-sm mt-1 uppercase tracking-tighter">Submit Intelligence Test</p>
-                {submittedIQ && (
-                  <p className="text-primary font-bold mt-2">Score: {scores.iq ?? 0} / 100</p>
-                )}
+                {submittedIQ && <p className="text-primary font-bold mt-2">Score: {scores.iq ?? 0} / 100</p>}
               </div>
             </Link>
-
-            <Link
-              href="/entry?type=gk"
-              className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedGK ? "opacity-70" : "hover:border-secondary/40")}
-            >
-              {submittedGK && (
-                <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  ✓ Done
-                </div>
-              )}
-              <div className="p-4 rounded-xl bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-white transition-colors">
-                <Globe className="w-12 h-12" />
-              </div>
+            <Link href="/entry?type=gk" className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedGK ? "opacity-70" : "hover:border-secondary/40")}>
+              {submittedGK && <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Done</div>}
+              <div className="p-4 rounded-xl bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-white transition-colors"><Globe className="w-12 h-12" /></div>
               <div className="text-center">
                 <h2 className="text-2xl font-bold">GK Answer Sheet</h2>
                 <p className="text-slate-500 text-sm mt-1 uppercase tracking-tighter">Submit General Knowledge</p>
-                {submittedGK && (
-                  <p className="text-white font-bold mt-2">Score: {scores.gk ?? 0} / 100</p>
-                )}
+                {submittedGK && <p className="text-white font-bold mt-2">Score: {scores.gk ?? 0} / 100</p>}
               </div>
             </Link>
           </div>
         )}
       </div>
+
+      {/* Stats Row */}
+      {stats && (submittedIQ || submittedGK) && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="w-full max-w-lg grid grid-cols-3 gap-3">
+          {[
+            { label: "Total Exams", value: stats.totalExams, icon: <Star className="w-4 h-4 text-indigo-400" />, color: "#6366f1" },
+            { label: "Best Score", value: stats.bestScore, icon: <Trophy className="w-4 h-4 text-yellow-400" />, color: "#fbbf24" },
+            { label: "Average", value: stats.avgScore, icon: <TrendingUp className="w-4 h-4 text-emerald-400" />, color: "#10b981" },
+          ].map(s => (
+            <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "rgba(8,14,30,0.6)", border: `1px solid ${s.color}25` }}>
+              <div className="flex justify-center mb-1">{s.icon}</div>
+              <p className="text-xl font-black text-white">{s.value}</p>
+              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{s.label}</p>
+            </div>
+          ))}
+        </motion.div>
+      )}
     </div>
   );
 }

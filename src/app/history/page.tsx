@@ -1,115 +1,236 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { History, Search, Download, Award, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { History, Search, Brain, Globe, Trophy, Calendar, CheckCircle, Clock, X } from "lucide-react";
 import clsx from "clsx";
 
+interface ExamRecord {
+  id: string;
+  name: string;
+  date: string;
+  score: number;
+  iqScore?: number;
+  gkScore?: number;
+  grade: string;
+  status: string;
+}
+
+function GradeChip({ grade }: { grade: string }) {
+  const map: Record<string, { bg: string; text: string }> = {
+    "A+": { bg: "bg-yellow-500/20 border-yellow-500/40 text-yellow-400", text: "A+" },
+    "A":  { bg: "bg-emerald-500/20 border-emerald-500/40 text-emerald-400", text: "A" },
+    "B":  { bg: "bg-blue-500/20 border-blue-500/40 text-blue-400", text: "B" },
+    "C":  { bg: "bg-slate-500/20 border-slate-500/40 text-slate-400", text: "C" },
+  };
+  const s = map[grade] ?? map["C"];
+  return (
+    <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-black border uppercase tracking-widest", s.bg)}>
+      {s.text}
+    </span>
+  );
+}
+
+function CertificateModal({ exam, name, onClose }: { exam: ExamRecord; name: string; onClose: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.8)", backdropFilter: "blur(12px)" }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.85, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 22 }}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-md relative"
+      >
+        <button onClick={onClose} className="absolute -top-4 -right-4 z-10 w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-colors">
+          <X className="w-4 h-4" />
+        </button>
+
+        {/* Certificate */}
+        <div
+          className="rounded-2xl p-8 text-center"
+          style={{
+            background: "linear-gradient(135deg, #0f1729 0%, #0a0e1f 100%)",
+            border: "1px solid rgba(220,20,60,0.4)",
+            boxShadow: "0 0 60px rgba(220,20,60,0.15), inset 0 1px 0 rgba(255,255,255,0.05)",
+          }}
+        >
+          {/* Top decoration */}
+          <div className="flex justify-center gap-2 mb-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="w-1 h-1 rounded-full bg-primary/60" style={{ opacity: 0.4 + i * 0.15 }} />
+            ))}
+          </div>
+
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">Certificate of Completion</p>
+          <p className="text-[10px] font-bold text-slate-600 mb-6">Amarasri Herath Academy</p>
+
+          <div className="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/30 flex items-center justify-center mx-auto mb-4">
+            <Trophy className="w-8 h-8 text-primary" />
+          </div>
+
+          <h2 className="text-xl font-black text-white mb-1">{name}</h2>
+          <p className="text-xs text-slate-500 mb-6">has successfully completed</p>
+          <h3 className="text-lg font-bold text-primary mb-2">{exam.name}</h3>
+          <p className="text-xs text-slate-500 mb-8 flex items-center justify-center gap-1">
+            <Calendar className="w-3 h-3" /> {exam.date}
+          </p>
+
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="rounded-xl p-3" style={{ background: "rgba(220,20,60,0.1)", border: "1px solid rgba(220,20,60,0.2)" }}>
+              <p className="text-xl font-black text-primary">{exam.iqScore ?? "—"}</p>
+              <p className="text-[9px] text-slate-500 uppercase tracking-wider mt-1">IQ</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <p className="text-xl font-black text-white">{exam.gkScore ?? "—"}</p>
+              <p className="text-[9px] text-slate-500 uppercase tracking-wider mt-1">GK</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.2)" }}>
+              <p className="text-xl font-black text-yellow-400">{exam.score}</p>
+              <p className="text-[9px] text-slate-500 uppercase tracking-wider mt-1">Total</p>
+            </div>
+          </div>
+
+          <GradeChip grade={exam.grade} />
+
+          {/* Bottom decoration */}
+          <div className="flex justify-center gap-2 mt-6">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="w-1 h-1 rounded-full bg-primary/60" style={{ opacity: 0.4 + (4 - i) * 0.15 }} />
+            ))}
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function HistoryPage() {
-  const [examHistory, setExamHistory] = useState<any[]>([]);
+  const [examHistory, setExamHistory] = useState<ExamRecord[]>([]);
+  const [user, setUser] = useState<{ nic: string; name: string } | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedExam, setSelectedExam] = useState<ExamRecord | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem("studentUser");
     if (userStr) {
-      const user = JSON.parse(userStr);
-      const savedStr = localStorage.getItem(`examHistory_${user.nic}`);
-      if (savedStr) {
-        setExamHistory(JSON.parse(savedStr));
-      }
+      const u = JSON.parse(userStr);
+      setUser(u);
+      const saved = JSON.parse(localStorage.getItem(`examHistory_${u.nic}`) || "[]");
+      setExamHistory(saved);
     }
   }, []);
 
+  const filtered = examHistory.filter(e =>
+    e.name?.toLowerCase().includes(search.toLowerCase()) ||
+    e.id?.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+    <div className="flex flex-col gap-8 pb-10">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3">
-            <History className="w-8 h-8 text-secondary" />
+            <History className="w-8 h-8 text-white/60" />
             Exam <span className="text-gradient">History</span>
           </h1>
-          <p className="text-gray-400 mt-1">Review past performance and download certificates</p>
+          <p className="text-slate-400 mt-1">Review all past exam submissions</p>
         </div>
-        
-        <div className="relative w-full md:w-64">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-500" />
-          </div>
-          <input 
-            type="text" 
-            placeholder="Search exams..." 
-            className="glass-input pl-10 w-full"
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search exams..."
+            className="glass-input pl-9 w-full text-sm"
           />
         </div>
       </div>
 
-      <div className="glass-panel overflow-hidden">
-        <div className="hidden md:grid grid-cols-12 gap-4 p-4 border-b border-white/10 text-sm font-medium text-gray-400">
-          <div className="col-span-3">Exam Name</div>
-          <div className="col-span-2 text-center">Date</div>
-          <div className="col-span-2 text-center">Score</div>
-          <div className="col-span-2 text-center">Grade</div>
-          <div className="col-span-3 text-right">Actions</div>
+      {/* Empty state */}
+      {filtered.length === 0 && (
+        <div className="glass-panel p-16 text-center text-slate-500 italic">
+          {examHistory.length === 0 ? "No exam history yet. Complete both papers to record your first attempt." : "No results match your search."}
         </div>
-        
-        <div className="flex flex-col">
-          {examHistory.map((exam, i) => (
-            <motion.div 
-              key={exam.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="p-4 flex flex-col md:grid md:grid-cols-12 gap-4 md:items-center border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors"
-            >
-              <div className="col-span-3">
-                <p className="font-bold text-white">{exam.name}</p>
-                <p className="text-xs text-gray-400">{exam.id}</p>
+      )}
+
+      {/* History Cards */}
+      <div className="flex flex-col gap-3">
+        {filtered.map((exam, i) => (
+          <motion.div
+            key={exam.id}
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: i * 0.06 }}
+            className="glass-panel p-5 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-white/20 transition-all"
+          >
+            {/* Status Icon */}
+            <div className="flex-shrink-0">
+              {exam.status === "completed"
+                ? <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-emerald-400" /></div>
+                : <div className="w-10 h-10 rounded-xl bg-orange-500/10 border border-orange-500/20 flex items-center justify-center"><Clock className="w-5 h-5 text-orange-400" /></div>}
+            </div>
+
+            {/* Exam Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-bold text-white truncate">{exam.name}</p>
+                <GradeChip grade={exam.grade} />
               </div>
-              
-              <div className="col-span-2 text-left md:text-center text-sm text-gray-300">
-                {exam.date}
+              <div className="flex items-center gap-3 mt-1 flex-wrap">
+                <span className="text-xs text-slate-500 flex items-center gap-1"><Calendar className="w-3 h-3" />{exam.date}</span>
+                <span className="text-[9px] font-mono text-slate-600">{exam.id}</span>
               </div>
-              
-              <div className="col-span-2 flex items-center justify-start md:justify-center">
-                {exam.status === "completed" ? (
-                  <span className={clsx(
-                    "text-lg font-bold",
-                    exam.score! >= 90 ? "text-green-400" :
-                    exam.score! >= 80 ? "text-primary" :
-                    exam.score! >= 70 ? "text-yellow-400" : "text-red-400"
-                  )}>
-                    {exam.score}%
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-sm text-orange-400 bg-orange-400/10 px-2 py-1 rounded">
-                    <Clock className="w-3 h-3" /> Pending
-                  </span>
-                )}
+            </div>
+
+            {/* Scores */}
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <div className="flex items-center gap-1.5 text-sm">
+                <Brain className="w-3.5 h-3.5 text-primary" />
+                <span className="font-bold text-primary">{exam.iqScore ?? "—"}</span>
+                <span className="text-slate-600 text-xs">/100</span>
               </div>
-              
-              <div className="col-span-2 text-left md:text-center font-medium">
-                {exam.status === "completed" ? exam.grade : "-"}
+              <div className="flex items-center gap-1.5 text-sm">
+                <Globe className="w-3.5 h-3.5 text-white/50" />
+                <span className="font-bold text-white">{exam.gkScore ?? "—"}</span>
+                <span className="text-slate-600 text-xs">/100</span>
               </div>
-              
-              <div className="col-span-3 flex justify-start md:justify-end gap-2">
-                <button 
-                  disabled={exam.status !== "completed"}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Award className="w-4 h-4 text-yellow-400" />
-                  View
-                </button>
-                <button 
-                  disabled={exam.status !== "completed"}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/20 text-primary hover:bg-primary/30 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Download className="w-4 h-4" />
-                  PDF
-                </button>
+              <div className="flex items-center gap-1.5 text-sm">
+                <Trophy className="w-3.5 h-3.5 text-yellow-500" />
+                <span className="font-black text-yellow-400">{exam.score}</span>
+                <span className="text-slate-600 text-xs">/200</span>
               </div>
-            </motion.div>
-          ))}
-        </div>
+            </div>
+
+            {/* View Certificate */}
+            {exam.status === "completed" && (
+              <button
+                onClick={() => setSelectedExam(exam)}
+                className="flex-shrink-0 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                style={{ background: "rgba(220,20,60,0.1)", border: "1px solid rgba(220,20,60,0.3)", color: "#DC143C" }}
+              >
+                Certificate
+              </button>
+            )}
+          </motion.div>
+        ))}
       </div>
+
+      {/* Certificate Modal */}
+      <AnimatePresence>
+        {selectedExam && user && (
+          <CertificateModal exam={selectedExam} name={user.name} onClose={() => setSelectedExam(null)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -79,7 +79,7 @@ export default function AdminPage() {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === "1234") setIsAuthorized(true);
+    if (password === "Sadaruwan2008") setIsAuthorized(true);
     else alert("Invalid Admin Password");
   };
 

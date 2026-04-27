@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f172a;
+  --background: #0a0e1f;
   --foreground: #f8fafc;
   --primary: #DC143C;
   --secondary: #ffffff;
@@ -25,9 +25,10 @@ body {
   color: var(--foreground);
   min-height: 100vh;
   overflow-x: hidden;
-  background-image: 
-    radial-gradient(at 0% 0%, rgba(220, 20, 60, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(220, 20, 60, 0.03) 0px, transparent 50%);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(220, 20, 60, 0.07) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(99, 102, 241, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(220, 20, 60, 0.03) 0px, transparent 60%);
   background-attachment: fixed;
 }
 
@@ -35,21 +36,17 @@ body {
   .glass-panel {
     @apply bg-slate-900/40 backdrop-blur-md border border-white/10 rounded-xl shadow-[0_4px_20px_-1px_rgba(0,0,0,0.3)];
   }
-  
+
   .glass-input {
     @apply bg-slate-950/40 backdrop-blur-sm border border-slate-700/50 rounded-lg px-4 py-2.5 text-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all placeholder-slate-500;
   }
-  
+
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-white;
   }
-  
-  .animate-float {
-    animation: none;
-  }
-  
+
   .neon-shadow {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(59, 130, 246, 0.1);
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.3), 0 0 40px rgba(220, 20, 60, 0.1);
   }
 
   .rank-shimmer {
@@ -62,18 +59,83 @@ body {
     background-size: 200% 100%;
     animation: shimmer 2s infinite linear;
   }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float 9s ease-in-out infinite;
+  }
+
+  .animate-float-fast {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .glass-glow-red {
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .glass-glow-indigo {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.2), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
 }
 
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(220,20,60,0.4); }
+
+/* ── Keyframes ─────────────────────────────────────────────────────────────── */
 @keyframes shimmer {
-  0% { background-position: 100% 0; }
+  0%   { background-position: 100% 0; }
   100% { background-position: -100% 0; }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
 }
 
-.animate-float-slow {
-  animation: float 6s ease-in-out infinite;
+@keyframes gradientShift {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes pulse-ring {
+  0%   { transform: scale(0.9); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+@keyframes xp-fill {
+  from { width: 0%; }
+  to   { width: var(--xp-width); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Floating orbs background ──────────────────────────────────────────────── */
+.orb {
+  position: fixed;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(80px);
+  opacity: 0.12;
+}
+.orb-1 {
+  width: 500px; height: 500px;
+  top: -10%; left: -10%;
+  background: radial-gradient(circle, rgba(220,20,60,1), transparent);
+  animation: float 14s ease-in-out infinite;
+}
+.orb-2 {
+  width: 600px; height: 600px;
+  bottom: -15%; right: -10%;
+  background: radial-gradient(circle, rgba(99,102,241,1), transparent);
+  animation: float 18s ease-in-out infinite reverse;
 }
