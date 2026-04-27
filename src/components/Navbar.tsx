@@ -385,10 +385,10 @@ export function Navbar() {
                 const docElm = document.documentElement;
                 if (docElm.requestFullscreen) {
                   docElm.requestFullscreen().then(() => {
-                    if (screen.orientation && screen.orientation.lock) {
-                      screen.orientation.lock("landscape").catch(e => console.log(e));
+                    if (screen.orientation && (screen.orientation as any).lock) {
+                      (screen.orientation as any).lock("landscape").catch((e: any) => console.log(e));
                     }
-                  }).catch(e => console.log(e));
+                  }).catch((e: any) => console.log(e));
                 }
               }}
               className="flex items-center gap-4 px-5 py-4 rounded-2xl text-base font-bold transition-all w-full text-left"
