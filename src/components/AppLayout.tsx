@@ -9,7 +9,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       
       <Navbar />
       
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 pt-28 pb-12 relative z-10">
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 pt-24 md:pt-28 landscape:pt-16 pb-12 relative z-10">
         {children}
       </main>
     </div>

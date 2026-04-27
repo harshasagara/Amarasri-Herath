@@ -75,10 +75,8 @@ export function Navbar() {
     <>
       {/* ===================== NAVBAR ===================== */}
       <nav
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between"
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between mx-2 mt-2 md:mx-3 md:mt-3 landscape:mx-1 landscape:mt-1 px-3 py-2 md:px-4 md:py-2.5 landscape:px-2 landscape:py-1.5"
         style={{
-          margin: "12px 12px 0",
-          padding: "10px 16px",
           background: "rgba(6, 11, 25, 0.72)",
           backdropFilter: "blur(28px)",
           WebkitBackdropFilter: "blur(28px)",
@@ -101,8 +99,7 @@ export function Navbar() {
         <div className="flex items-center gap-3 min-w-0">
           {/* Logo wrapper — double tap/click to zoom */}
           <div
-            className="relative flex-shrink-0 cursor-pointer select-none"
-            style={{ width: 48, height: 48 }}
+            className="relative flex-shrink-0 cursor-pointer select-none w-10 h-10 md:w-12 md:h-12 landscape:w-8 landscape:h-8"
             onClick={handleLogoInteract}
             onTouchEnd={(e) => {
               e.preventDefault();

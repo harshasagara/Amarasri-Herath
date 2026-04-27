@@ -163,7 +163,7 @@ export default function Dashboard() {
   const bothDone = submittedIQ && submittedGK;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-10 relative">
+    <div className="flex flex-col items-center justify-center min-h-[60vh] landscape:min-h-0 gap-6 md:gap-10 landscape:gap-4 relative">
       <button
         onClick={handleLogout}
         className="absolute top-0 right-0 flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors"
@@ -260,7 +260,7 @@ export default function Dashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
             <Link
               href="/entry?type=iq"
-              className={clsx("glass-panel p-10 flex flex-col items-center gap-6 transition-all group relative", submittedIQ ? "opacity-70" : "hover:border-primary/40")}
+              className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedIQ ? "opacity-70" : "hover:border-primary/40")}
             >
               {submittedIQ && (
                 <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
@@ -281,7 +281,7 @@ export default function Dashboard() {
 
             <Link
               href="/entry?type=gk"
-              className={clsx("glass-panel p-10 flex flex-col items-center gap-6 transition-all group relative", submittedGK ? "opacity-70" : "hover:border-secondary/40")}
+              className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedGK ? "opacity-70" : "hover:border-secondary/40")}
             >
               {submittedGK && (
                 <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
