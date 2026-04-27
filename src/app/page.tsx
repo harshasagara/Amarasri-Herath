@@ -6,17 +6,7 @@ import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 
-const PROVINCES = [
-  "Central", "Eastern", "North Central", "Northern", "North Western", 
-  "Sabaragamuwa", "Southern", "Uva", "Western"
-];
-
-const DISTRICTS = [
-  "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", 
-  "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", 
-  "Mannar", "Matale", "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya", 
-  "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"
-];
+import { PROVINCES, PROVINCE_DISTRICTS } from "@/lib/regions";
 
 export default function Dashboard() {
   const [user, setUser] = useState<{ nic: string, name: string, province: string, district: string } | null>(null);
@@ -131,7 +121,10 @@ export default function Dashboard() {
               <select 
                 required
                 value={province}
-                onChange={(e) => setProvince(e.target.value)}
+                onChange={(e) => {
+                  setProvince(e.target.value);
+                  setDistrict("");
+                }}
                 className="glass-input appearance-none bg-slate-900"
               >
                 <option value="">Select</option>
@@ -147,7 +140,7 @@ export default function Dashboard() {
                 className="glass-input appearance-none bg-slate-900"
               >
                 <option value="">Select</option>
-                {DISTRICTS.map(d => <option key={d} value={d}>{d}</option>)}
+                {province && (PROVINCE_DISTRICTS[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
             </div>
           </div>

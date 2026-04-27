@@ -27,17 +27,7 @@ const SUBJECTS = [
   "Political Science", "Business Studies", "Psychology", "Sociology", "Statistics"
 ];
 
-const PROVINCES = [
-  "Central", "Eastern", "North Central", "Northern", "North Western", 
-  "Sabaragamuwa", "Southern", "Uva", "Western"
-];
-
-const DISTRICTS = [
-  "Ampara", "Anuradhapura", "Badulla", "Batticaloa", "Colombo", "Galle", "Gampaha", 
-  "Hambantota", "Jaffna", "Kalutara", "Kandy", "Kegalle", "Kilinochchi", "Kurunegala", 
-  "Mannar", "Matale", "Matara", "Monaragala", "Mullaitivu", "Nuwara Eliya", 
-  "Polonnaruwa", "Puttalam", "Ratnapura", "Trincomalee", "Vavuniya"
-];
+import { PROVINCES, PROVINCE_DISTRICTS, ALL_DISTRICTS } from "@/lib/regions";
 
 interface StudentEntry {
   nic: string;
@@ -268,12 +258,12 @@ export default function LeaderboardPage() {
               label="Province" 
               options={["Province", ...PROVINCES]} 
               value={filters.province} 
-              onChange={(v: string) => setFilters({...filters, province: v})} 
+              onChange={(v: string) => setFilters({...filters, province: v, district: "District"})} 
               icon={MapPin}
             />
             <Dropdown 
               label="District" 
-              options={["District", ...DISTRICTS]} 
+              options={["District", ...(filters.province === "Province" ? ALL_DISTRICTS : (PROVINCE_DISTRICTS[filters.province] || []))]} 
               value={filters.district} 
               onChange={(v: string) => setFilters({...filters, district: v})} 
               icon={MapPin}
