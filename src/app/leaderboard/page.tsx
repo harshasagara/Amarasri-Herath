@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Trophy, Medal, Star, Filter, MapPin, Search as SearchIcon } from "lucide-react";
 import { SubjectAutocomplete } from "@/components/SubjectAutocomplete";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState("island");
@@ -181,7 +181,7 @@ export default function Leaderboard() {
           </div>
 
           {/* Regional Filter */}
-          <div className={clsx(
+          <div className={cn(
             "bg-white p-5 md:p-6 rounded-[2rem] shadow-xl border border-slate-100 transition-all hover:shadow-2xl hover:shadow-primary/5 animate-in slide-in-from-bottom-4",
             (!needsProvinceFilter && !needsDistrictFilter) && "opacity-40 grayscale pointer-events-none"
           )}>
@@ -218,7 +218,7 @@ export default function Leaderboard() {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={clsx(
+                  className={cn(
                     "flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                     selectedCategory === cat 
                       ? "bg-white text-primary shadow-md border border-slate-100 font-black" 
