@@ -133,7 +133,7 @@ export default function Leaderboard() {
             <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl md:text-6xl font-black tracking-tighter">Merit <span className="text-primary italic">Leaderboard</span></h1>
+            <h1 className="text-3xl md:text-6xl font-black tracking-tighter">Student <span className="text-primary italic">Leaderboard</span></h1>
             <p className="text-gray-400 font-medium text-sm md:text-lg max-w-2xl px-4">
               Celebrating excellence and dedication. See where you stand among all registered performers.
             </p>
@@ -163,60 +163,66 @@ export default function Leaderboard() {
         </Tabs>
 
         {/* Dynamic Filters */}
-        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-          <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5">
-            <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
-              <Star className="w-3.5 h-3.5" />
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">Select Subject</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+          {/* Subject Filter */}
+          <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-xl border border-slate-100 transition-all hover:shadow-2xl hover:shadow-primary/5">
+            <div className="flex items-center gap-2 mb-4 text-primary">
+              <Star className="w-3.5 h-3.5 fill-current" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Subject</p>
             </div>
             <SubjectAutocomplete 
               defaultValue={selectedSubject} 
               onSelect={setSelectedSubject} 
               showAllOption={true}
               placeholder="All Subjects"
-              className="h-12 md:h-14 border-2 rounded-xl"
+              className="h-12 md:h-14 border-2 border-slate-100 rounded-2xl bg-slate-50 focus:bg-white transition-all"
             />
           </div>
 
-          {(needsProvinceFilter || needsDistrictFilter) && (
-            <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5 animate-in slide-in-from-right-4">
-              <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
-                <MapPin className="w-3.5 h-3.5" />
-                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  {needsProvinceFilter ? "Province Filter" : "District Filter"}
-                </p>
-              </div>
-              <Select 
-                value={needsProvinceFilter ? selectedProvince : selectedDistrict} 
-                onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
-              >
-                <SelectTrigger className="h-12 md:h-14 rounded-xl border-2 border-slate-800 bg-slate-950 font-bold px-4 text-white">
-                  <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : "Choose District"} />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  {(needsProvinceFilter ? PROVINCES : DISTRICTS).map((item) => (
-                    <SelectItem key={item} value={item} className="font-medium">{item}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {/* Regional Filter */}
+          <div className={clsx(
+            "bg-white p-5 md:p-6 rounded-[2rem] shadow-xl border border-slate-100 transition-all hover:shadow-2xl hover:shadow-primary/5 animate-in slide-in-from-bottom-4",
+            (!needsProvinceFilter && !needsDistrictFilter) && "opacity-40 grayscale pointer-events-none"
+          )}>
+            <div className="flex items-center gap-2 mb-4 text-primary">
+              <MapPin className="w-3.5 h-3.5 fill-current" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {needsProvinceFilter ? "Province Filter" : needsDistrictFilter ? "District Filter" : "Location Filter"}
+              </p>
             </div>
-          )}
+            <Select 
+              value={needsProvinceFilter ? selectedProvince : selectedDistrict} 
+              onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
+              disabled={!needsProvinceFilter && !needsDistrictFilter}
+            >
+              <SelectTrigger className="h-12 md:h-14 rounded-2xl border-none bg-slate-900 font-bold px-5 text-white shadow-lg hover:bg-slate-800 transition-all disabled:bg-slate-200">
+                <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : needsDistrictFilter ? "Choose District" : "Select a tab first"} />
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-slate-800 bg-slate-950">
+                {(needsProvinceFilter ? PROVINCES : DISTRICTS).map((item) => (
+                  <SelectItem key={item} value={item}>{item}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-          <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5 animate-in slide-in-from-right-4">
-            <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
-              <Filter className="w-3.5 h-3.5" />
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">Candidate Type / කාණ්ඩය</p>
+          {/* Category Filter */}
+          <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-xl border border-slate-100 transition-all hover:shadow-2xl hover:shadow-primary/5">
+            <div className="flex items-center gap-2 mb-4 text-primary">
+              <Filter className="w-3.5 h-3.5 fill-current" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Candidate Type / කාණ්ඩය</p>
             </div>
-            <div className="flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200">
+            <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 h-12 md:h-14">
               {["Open", "limited"].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  className={clsx(
+                    "flex-1 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
                     selectedCategory === cat 
-                      ? 'bg-white text-primary shadow-lg ring-1 ring-primary/10' 
-                      : 'text-slate-400 hover:text-slate-600 hover:bg-neutral-200/50'
-                  }`}
+                      ? "bg-white text-primary shadow-md border border-slate-100 font-black" 
+                      : "text-slate-400 hover:text-slate-600"
+                  )}
                 >
                   {cat}
                 </button>
