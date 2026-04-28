@@ -124,9 +124,9 @@ export default function Leaderboard() {
           <div className="bg-primary/5 p-10 rounded-[3rem] text-primary mb-10 ring-8 ring-primary/5">
             <Star className="w-20 h-20 opacity-20" />
           </div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-6">Leaderboard Restricted</h2>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-6">Student Leaderboard Restricted</h2>
           <p className="text-slate-500 font-bold mb-12 leading-relaxed text-lg opacity-70">
-            The public leaderboard is currently hidden by the administrator. Please check back later.
+            The public student leaderboard is currently hidden by the administrator. Please check back later.
           </p>
         </div>
       </div>

@@ -18,7 +18,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Leaderboard", href: "/leaderboard", icon: Trophy },
+  { name: "Student Leaderboard", href: "/leaderboard", icon: Trophy },
   { name: "Analytics", href: "/analytics", icon: LineChart },
   { name: "History", href: "/history", icon: History },
 ];
