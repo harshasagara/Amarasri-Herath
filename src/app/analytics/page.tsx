@@ -2,14 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { BarChart2, TrendingUp, BrainCircuit, Globe, Zap, Award } from "lucide-react";
-import { loadStudentStats, type StudentStats } from "@/lib/gamification";
+import { BarChart2, TrendingUp, BrainCircuit, Globe } from "lucide-react";
 
 export default function AnalyticsPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [subjectScores, setSubjectScores] = useState({ iq: 0, gk: 0 });
   const [user, setUser] = useState<{ nic: string; name: string } | null>(null);
-  const [stats, setStats] = useState<StudentStats | null>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem("studentUser");
@@ -20,12 +18,11 @@ export default function AnalyticsPage() {
       setHistory(h);
       const s = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
       setSubjectScores({ iq: s.iq ?? 0, gk: s.gk ?? 0 });
-      setStats(loadStudentStats(u.nic));
     }
   }, []);
 
-  const maxScore = Math.max(...history.map(h => h.score ?? 0), 1);
-  const unlockedAch = stats?.achievements.filter(a => a.unlocked) ?? [];
+  const bestScore = history.length > 0 ? Math.max(...history.map(h => h.score ?? 0)) : 0;
+  const avgScore = history.length > 0 ? Math.round(history.reduce((acc, curr) => acc + (curr.score ?? 0), 0) / history.length) : 0;
 
   return (
     <div className="flex flex-col gap-8 pb-10">
@@ -39,30 +36,27 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Top Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: "XP Earned", value: stats.xp, icon: <Zap className="w-5 h-5 text-indigo-400" />, color: "#6366f1" },
-            { label: "Level", value: stats.levelTitle, icon: <TrendingUp className="w-5 h-5 text-emerald-400" />, color: "#10b981" },
-            { label: "Achievements", value: `${unlockedAch.length}/${stats.achievements.length}`, icon: <Award className="w-5 h-5 text-yellow-400" />, color: "#fbbf24" },
-            { label: "Best Score", value: stats.bestScore || "—", icon: <BarChart2 className="w-5 h-5 text-primary" />, color: "#DC143C" },
-          ].map(s => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="glass-panel p-4 flex flex-col gap-2"
-            >
-              <div className="flex items-center justify-between">
-                {s.icon}
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{s.label}</p>
-              </div>
-              <p className="text-2xl font-black text-white">{s.value}</p>
-              <div className="h-px w-full rounded-full" style={{ background: `${s.color}40` }} />
-            </motion.div>
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Exams Taken", value: history.length, icon: <TrendingUp className="w-5 h-5 text-emerald-400" />, color: "#10b981" },
+          { label: "Best Score", value: bestScore || "—", icon: <BarChart2 className="w-5 h-5 text-primary" />, color: "#DC143C" },
+          { label: "Average Score", value: avgScore || "—", icon: <Globe className="w-5 h-5 text-indigo-400" />, color: "#6366f1" },
+        ].map(s => (
+          <motion.div
+            key={s.label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-panel p-5 flex flex-col gap-2"
+          >
+            <div className="flex items-center justify-between">
+              {s.icon}
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{s.label}</p>
+            </div>
+            <p className="text-2xl font-black text-white">{s.value}</p>
+            <div className="h-px w-full rounded-full" style={{ background: `${s.color}40` }} />
+          </motion.div>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Progress Chart */}
@@ -86,7 +80,6 @@ export default function AnalyticsPage() {
               {history.map((d, i) => (
                 <div key={d.id || i} className="flex flex-col items-center gap-1 flex-1 group" style={{ maxWidth: 60 }}>
                   <div className="relative w-full flex justify-center items-end" style={{ height: 160 }}>
-                    {/* Score tooltip */}
                     <div className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-white text-black text-[10px] font-black px-2 py-0.5 rounded whitespace-nowrap z-10">
                       {d.score}/200
                     </div>
@@ -170,27 +163,6 @@ export default function AnalyticsPage() {
           </div>
         </motion.div>
       </div>
-
-      {/* Achievements Grid */}
-      {stats && unlockedAch.length > 0 && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-panel p-6">
-          <h2 className="text-lg font-bold mb-5 flex items-center gap-2">
-            <Award className="w-5 h-5 text-yellow-400" /> Unlocked Achievements
-          </h2>
-          <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-3">
-            {unlockedAch.map(a => (
-              <div
-                key={a.id}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-xl text-center"
-                style={{ background: `${a.color}12`, border: `1px solid ${a.color}35` }}
-              >
-                <span className="text-2xl">{a.icon}</span>
-                <p className="text-[9px] font-black uppercase tracking-wider leading-tight" style={{ color: a.color }}>{a.title}</p>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      )}
     </div>
   );
 }

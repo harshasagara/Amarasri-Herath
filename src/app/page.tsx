@@ -1,78 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain, Zap, Star, TrendingUp, Award } from "lucide-react";
+import { motion } from "framer-motion";
+import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { PROVINCES, PROVINCE_DISTRICTS } from "@/lib/regions";
-import { loadStudentStats, type StudentStats, type Achievement } from "@/lib/gamification";
-
-// ── XP Level Bar ──────────────────────────────────────────────────────────────
-function XPBar({ stats }: { stats: StudentStats }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-lg"
-    >
-      <div
-        className="rounded-2xl p-4"
-        style={{
-          background: "rgba(8,14,30,0.7)",
-          border: "1px solid rgba(99,102,241,0.3)",
-          boxShadow: "0 0 30px rgba(99,102,241,0.08)",
-        }}
-      >
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-indigo-400" />
-            </div>
-            <div>
-              <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">Level {stats.level}</p>
-              <p className="text-sm font-bold text-white">{stats.levelTitle}</p>
-            </div>
-          </div>
-          <div className="text-right">
-            <p className="text-xl font-black text-indigo-400">{stats.xp} <span className="text-xs text-slate-500">XP</span></p>
-          </div>
-        </div>
-        <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${stats.levelProgress}%` }}
-            transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
-            className="h-full rounded-full"
-            style={{ background: "linear-gradient(90deg, #6366f1, #818cf8)" }}
-          />
-        </div>
-        <p className="text-[10px] text-slate-600 mt-1 text-right font-bold uppercase tracking-wider">{stats.levelProgress}% to next level</p>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Achievement Badge ─────────────────────────────────────────────────────────
-function AchievementBadge({ a }: { a: Achievement }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ scale: 1.05 }}
-      className="flex flex-col items-center gap-1 p-3 rounded-xl transition-all"
-      style={{
-        background: a.unlocked ? `${a.color}14` : "rgba(255,255,255,0.02)",
-        border: `1px solid ${a.unlocked ? `${a.color}40` : "rgba(255,255,255,0.06)"}`,
-        opacity: a.unlocked ? 1 : 0.4,
-      }}
-      title={a.description}
-    >
-      <span className="text-2xl" style={{ filter: a.unlocked ? "none" : "grayscale(1)" }}>{a.icon}</span>
-      <p className="text-[9px] font-black text-center uppercase tracking-wider" style={{ color: a.unlocked ? a.color : "#475569" }}>{a.title}</p>
-    </motion.div>
-  );
-}
 
 // ── AI Insight Card ───────────────────────────────────────────────────────────
 function AIInsight({ iq, gk }: { iq: number | null; gk: number | null }) {
@@ -131,15 +64,12 @@ export default function Dashboard() {
   const [scores, setScores] = useState<{ iq: number | null; gk: number | null }>({ iq: null, gk: null });
   const [submittedIQ, setSubmittedIQ] = useState(false);
   const [submittedGK, setSubmittedGK] = useState(false);
-  const [stats, setStats] = useState<StudentStats | null>(null);
-  const [showAchievements, setShowAchievements] = useState(false);
 
   const loadAll = (u: { nic: string; name: string; province: string; district: string }) => {
     const sc = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
     setScores({ iq: sc.iq ?? null, gk: sc.gk ?? null });
     setSubmittedIQ(localStorage.getItem(`submittedIQ_${u.nic}`) === "true");
     setSubmittedGK(localStorage.getItem(`submittedGK_${u.nic}`) === "true");
-    setStats(loadStudentStats(u.nic));
   };
 
   useEffect(() => {
@@ -180,7 +110,6 @@ export default function Dashboard() {
     setScores({ iq: null, gk: null });
     setSubmittedIQ(false);
     setSubmittedGK(false);
-    setStats(null);
   };
 
   if (!isLoaded) return null;
@@ -272,9 +201,6 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* XP Level Bar */}
-      {stats && <XPBar stats={stats} />}
-
       {/* Score Summary */}
       {(submittedIQ || submittedGK) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
@@ -304,25 +230,6 @@ export default function Dashboard() {
 
       {/* AI Insight */}
       {(submittedIQ || submittedGK) && <AIInsight iq={scores.iq} gk={scores.gk} />}
-
-      {/* Achievements */}
-      {stats && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="w-full max-w-lg">
-          <button onClick={() => setShowAchievements(v => !v)} className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors mb-3">
-            <Award className="w-3.5 h-3.5" />
-            Achievements ({stats.achievements.filter(a => a.unlocked).length}/{stats.achievements.length})
-            <span className="ml-1">{showAchievements ? "▲" : "▼"}</span>
-          </button>
-          <AnimatePresence>
-            {showAchievements && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-                className="grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-hidden">
-                {stats.achievements.map(a => <AchievementBadge key={a.id} a={a} />)}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
-      )}
 
       {/* Exam Cards */}
       <div className="w-full max-w-4xl">
@@ -359,23 +266,6 @@ export default function Dashboard() {
           </div>
         )}
       </div>
-
-      {/* Stats Row */}
-      {stats && (submittedIQ || submittedGK) && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="w-full max-w-lg grid grid-cols-3 gap-3">
-          {[
-            { label: "Total Exams", value: stats.totalExams, icon: <Star className="w-4 h-4 text-indigo-400" />, color: "#6366f1" },
-            { label: "Best Score", value: stats.bestScore, icon: <Trophy className="w-4 h-4 text-yellow-400" />, color: "#fbbf24" },
-            { label: "Average", value: stats.avgScore, icon: <TrendingUp className="w-4 h-4 text-emerald-400" />, color: "#10b981" },
-          ].map(s => (
-            <div key={s.label} className="rounded-xl p-3 text-center" style={{ background: "rgba(8,14,30,0.6)", border: `1px solid ${s.color}25` }}>
-              <div className="flex justify-center mb-1">{s.icon}</div>
-              <p className="text-xl font-black text-white">{s.value}</p>
-              <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">{s.label}</p>
-            </div>
-          ))}
-        </motion.div>
-      )}
     </div>
   );
 }
