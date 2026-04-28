@@ -15,6 +15,7 @@ import {
   Maximize,
 } from "lucide-react";
 import { useState, useEffect, useRef, useCallback } from "react";
+import { getSystemConfig } from "@/app/actions";
 
 const navItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -29,17 +30,26 @@ export function Navbar() {
   const [logoZoomed, setLogoZoomed] = useState(false);
   const [showZoomOverlay, setShowZoomOverlay] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [viewRankings, setViewRankings] = useState(true);
 
   // Check login state on mount and listen for changes
   useEffect(() => {
     const checkLogin = () => setIsLoggedIn(!!localStorage.getItem("studentUser"));
+    const checkSettings = async () => {
+      const config = await getSystemConfig();
+      setViewRankings(config.view_rankings);
+    };
     checkLogin();
+    checkSettings();
 
     // Listen for storage changes (cross-tab) and custom event (same-tab)
     window.addEventListener("storage", checkLogin);
     window.addEventListener("loginStateChanged", checkLogin);
     // Poll periodically as fallback for same-tab localStorage changes
-    const interval = setInterval(checkLogin, 500);
+    const interval = setInterval(() => {
+      checkLogin();
+      checkSettings();
+    }, 2000);
     return () => {
       window.removeEventListener("storage", checkLogin);
       window.removeEventListener("loginStateChanged", checkLogin);
@@ -48,9 +58,19 @@ export function Navbar() {
   }, []);
 
   // Filter nav items based on login state
-  const visibleNavItems = isLoggedIn
-    ? navItems
-    : navItems.filter((item) => item.href === "/");
+  // Filter nav items based on login state and admin settings
+  const visibleNavItems = navItems.filter((item) => {
+    // Always show Dashboard
+    if (item.href === "/") return true;
+    
+    // Check if logged in for other items
+    if (!isLoggedIn) return false;
+    
+    // Check admin visibility for Leaderboard
+    if (item.href === "/leaderboard") return viewRankings;
+    
+    return true;
+  });
 
   // Double tap / double click detection
   const lastTapRef = useRef<number>(0);
