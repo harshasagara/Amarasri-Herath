@@ -136,21 +136,10 @@ export default function Leaderboard() {
   return (
     <div className="w-full max-w-6xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {/* Header section */}
-      <div className="relative overflow-hidden bg-[#0a0a0f] text-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 mb-8 md:mb-12 shadow-2xl">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] -mr-32 -mt-32" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 blur-[100px] -ml-32 -mb-32" />
-
-        <div className="relative z-10 flex flex-col items-center text-center space-y-6">
-          <div className="bg-gradient-to-br from-amber-400 to-orange-500 w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-lg transform rotate-3">
-            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white" />
-          </div>
-          <div className="space-y-2">
-            <h1 className="text-3xl md:text-6xl font-black tracking-tighter">Student <span className="text-primary italic">Leaderboard</span></h1>
-            <p className="text-gray-400 font-medium text-sm md:text-lg max-w-2xl px-4">
-              Celebrating excellence and dedication. See where you stand among all registered performers.
-            </p>
-          </div>
-        </div>
+      <div className="mb-6 md:mb-8 px-1">
+        <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900">
+          Student <span className="text-primary italic">Leaderboard</span>
+        </h1>
       </div>
 
       <div className="space-y-6 md:space-y-8">

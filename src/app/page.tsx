@@ -119,11 +119,12 @@ function AIInsight({ iq, gk }: { iq: number | null; gk: number | null }) {
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [user, setUser] = useState<{ nic: string; name: string; province: string; district: string } | null>(null);
+  const [user, setUser] = useState<{ nic: string; name: string; province: string; district: string; category: string } | null>(null);
   const [nic, setNic] = useState("");
   const [name, setName] = useState("");
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
+  const [category, setCategory] = useState("Open");
   const [submissionsDisabled, setSubmissionsDisabled] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -166,7 +167,7 @@ export default function Dashboard() {
         registeredUsers[nic] = name.trim();
         localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
       }
-      const newUser = { nic, name: name.trim(), province, district };
+      const newUser = { nic, name: name.trim(), province, district, category };
       localStorage.setItem("studentUser", JSON.stringify(newUser));
       setUser(newUser);
       loadAll(newUser);
@@ -220,6 +221,26 @@ export default function Dashboard() {
                 <option value="">Select</option>
                 {province && (PROVINCE_DISTRICTS[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
               </select>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-slate-300">Candidate Type / කාණ්ඩය</label>
+            <div className="flex bg-slate-800/60 p-1 rounded-xl border border-slate-700 gap-1">
+              {["Open", "limited"].map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setCategory(cat)}
+                  className={clsx(
+                    "flex-1 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest transition-all",
+                    category === cat
+                      ? "bg-primary text-white shadow-md"
+                      : "text-slate-400 hover:text-slate-200"
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           </div>
           {error && (
