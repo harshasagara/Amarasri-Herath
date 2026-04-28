@@ -73,14 +73,17 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("studentUser");
-    if (savedUser) {
-      const u = JSON.parse(savedUser);
-      setUser(u);
-      loadAll(u);
-    }
-    setSubmissionsDisabled(localStorage.getItem("submissionsDisabled") === "true");
-    setIsLoaded(true);
+    const init = async () => {
+      const savedUser = localStorage.getItem("studentUser");
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        setUser(u);
+        loadAll(u);
+      }
+      setSubmissionsDisabled(localStorage.getItem("submissionsDisabled") === "true");
+      setIsLoaded(true);
+    };
+    init();
   }, []);
 
   const handleLogin = (e: React.FormEvent) => {

@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase/client";
 import { getAdminRankings, getSystemConfig } from "@/app/actions";
 import { StudentResult } from "@/types";
 import { PROVINCES, DISTRICTS } from "@/lib/constants";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Loader2, Trophy, MapPin, Search as SearchIcon, Globe, Building2, Brain, BookOpen, SlidersHorizontal } from "lucide-react";
@@ -55,18 +55,18 @@ export default function Leaderboard() {
   }, [activeTab, selectedProvince, selectedDistrict, selectedSubject, selectedCategory]);
 
   useEffect(() => {
-    const checkConfig = async () => {
+    const init = async () => {
       const config = await getSystemConfig();
       if (config.ranking_mode) setRankingMode(config.ranking_mode);
       setViewRankings(config.view_rankings);
+      fetchData();
     };
-    checkConfig();
-    fetchData();
+    init();
 
     const channel = supabase
       .channel('public-leaderboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'students_results' }, () => { fetchData(); })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_config' }, (payload: any) => {
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'system_config' }, (payload: { new: { ranking_mode?: string; view_rankings?: boolean } }) => {
         if (payload.new) {
           if (payload.new.ranking_mode) setRankingMode(payload.new.ranking_mode);
           if (payload.new.view_rankings !== undefined) setViewRankings(payload.new.view_rankings);
@@ -84,6 +84,7 @@ export default function Leaderboard() {
       const key = `${student.nic}-${student.category}`;
       if (!nameMap.has(key)) {
         nameMap.set(key, groups.length);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { nic, subject, ...safeStudent } = student;
         groups.push(safeStudent);
       }
@@ -91,9 +92,9 @@ export default function Leaderboard() {
 
     let lastScore = -1;
     let lastRank = 1;
-    return groups.map((student: any, index) => {
-      const currentScore = activeTab === "iq_ranking" ? student.iq_marks :
-        activeTab === "gk_ranking" ? student.gk_marks : student.total_marks;
+    return groups.map((student: Omit<StudentResult, 'nic' | 'subject'>, index) => {
+      const currentScore = activeTab === "iq_ranking" ? (student as any).iq_marks :
+        activeTab === "gk_ranking" ? (student as any).gk_marks : (student as any).total_marks;
       if (currentScore !== lastScore) { lastRank = index + 1; lastScore = currentScore; }
       return { ...student, rank: lastRank };
     });

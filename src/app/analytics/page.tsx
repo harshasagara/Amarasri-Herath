@@ -4,21 +4,28 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { BarChart2, TrendingUp, BrainCircuit, Globe } from "lucide-react";
 
+interface ExamHistoryItem {
+  id: string;
+  name: string;
+  score: number;
+}
+
 export default function AnalyticsPage() {
-  const [history, setHistory] = useState<any[]>([]);
+  const [history, setHistory] = useState<ExamHistoryItem[]>([]);
   const [subjectScores, setSubjectScores] = useState({ iq: 0, gk: 0 });
-  const [user, setUser] = useState<{ nic: string; name: string } | null>(null);
 
   useEffect(() => {
-    const userStr = localStorage.getItem("studentUser");
-    if (userStr) {
-      const u = JSON.parse(userStr);
-      setUser(u);
-      const h = JSON.parse(localStorage.getItem(`examHistory_${u.nic}`) || "[]").reverse();
-      setHistory(h);
-      const s = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
-      setSubjectScores({ iq: s.iq ?? 0, gk: s.gk ?? 0 });
-    }
+    const init = async () => {
+      const userStr = localStorage.getItem("studentUser");
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        const h = JSON.parse(localStorage.getItem(`examHistory_${u.nic}`) || "[]").reverse();
+        setHistory(h);
+        const s = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
+        setSubjectScores({ iq: s.iq ?? 0, gk: s.gk ?? 0 });
+      }
+    };
+    init();
   }, []);
 
   const bestScore = history.length > 0 ? Math.max(...history.map(h => h.score ?? 0)) : 0;
