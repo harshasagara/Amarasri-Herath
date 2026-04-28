@@ -135,27 +135,28 @@ function EntryExamContent() {
       try {
         // 1. Get current data for this student to preserve the other score
         const { data: existing, error: fetchError } = await supabase
-          .from('leaderboard')
+          .from('students_results')
           .select('*')
           .eq('nic', user.nic)
           .single();
 
-        let iqScore = type === "iq" ? calculatedScore : (existing?.iq_score || 0);
-        let gkScore = type === "gk" ? calculatedScore : (existing?.gk_score || 0);
-        let totalScore = iqScore + gkScore;
+        let iqMarks = type === "iq" ? calculatedScore : (existing?.iq_marks || 0);
+        let gkMarks = type === "gk" ? calculatedScore : (existing?.gk_marks || 0);
+        let totalMarks = iqMarks + gkMarks;
 
         // 2. Upsert the merged data
         const { error: upsertError } = await supabase
-          .from('leaderboard')
+          .from('students_results')
           .upsert({
             nic: user.nic,
             name: user.name,
             province: (user as any).province || "Unknown",
             district: (user as any).district || "Unknown",
-            subject: type.toUpperCase(), // Or use a default subject if not specified
-            iq_score: iqScore,
-            gk_score: gkScore,
-            total_score: totalScore
+            subject: type.toUpperCase(),
+            category: (user as any).category || "Open",
+            iq_marks: iqMarks,
+            gk_marks: gkMarks,
+            total_marks: totalMarks
           }, { onConflict: 'nic' });
 
         if (upsertError) throw upsertError;

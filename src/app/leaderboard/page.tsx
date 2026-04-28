@@ -69,6 +69,16 @@ export default function Leaderboard() {
         { event: '*', schema: 'public', table: 'students_results' },
         () => { fetchData(); }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'system_config' },
+        (payload: any) => {
+          if (payload.new) {
+            if (payload.new.ranking_mode) setRankingMode(payload.new.ranking_mode);
+            if (payload.new.view_rankings !== undefined) setViewRankings(payload.new.view_rankings);
+          }
+        }
+      )
       .subscribe();
 
     return () => {

@@ -49,3 +49,16 @@ export async function getSystemConfig(): Promise<SystemConfig> {
     return { ranking_mode: 'general', view_rankings: true };
   }
 }
+export async function updateSystemConfig(config: Partial<SystemConfig>) {
+  try {
+    const { error } = await supabase
+      .from('system_config')
+      .upsert({ id: 1, ...config }); // Assuming a single config row with id=1
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error) {
+    console.error("Error in updateSystemConfig:", error);
+    return { success: false, error: "Failed to update config" };
+  }
+}

@@ -7,6 +7,7 @@ import {
   Trophy, ArrowLeft, AlertTriangle, Eye, EyeOff,
 } from "lucide-react";
 import clsx from "clsx";
+import { getSystemConfig, updateSystemConfig } from "@/app/actions";
 
 interface StudentEntry {
   nic: string;
@@ -60,6 +61,12 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    const init = async () => {
+      const config = await getSystemConfig();
+      setLbEnabled(config.view_rankings);
+    };
+    init();
+
     const savedName = localStorage.getItem("adminExamName");
     if (savedName) setExamName(savedName);
 
@@ -172,9 +179,9 @@ export default function AdminPage() {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const handleToggleLeaderboard = () => {
+  const handleToggleLeaderboard = async () => {
     const next = !lbEnabled;
-    localStorage.setItem("leaderboardEnabled", next.toString());
+    await updateSystemConfig({ view_rankings: next });
     setLbEnabled(next);
   };
 
