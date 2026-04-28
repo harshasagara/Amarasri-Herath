@@ -214,12 +214,12 @@ export default function Leaderboard() {
               onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
               disabled={!needsProvinceFilter && !needsDistrictFilter}
             >
-              <SelectTrigger className="h-12 md:h-14 rounded-2xl border-none bg-slate-900 font-bold px-5 text-white shadow-lg hover:bg-slate-800 transition-all disabled:bg-slate-200">
+              <SelectTrigger className="h-12 md:h-14 rounded-2xl border-2 border-slate-100 bg-slate-50 font-bold px-5 text-slate-900 shadow-sm hover:bg-white transition-all disabled:bg-slate-100 disabled:text-slate-400">
                 <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : needsDistrictFilter ? "Choose District" : "Select a tab first"} />
               </SelectTrigger>
-              <SelectContent className="rounded-2xl border-slate-800 bg-slate-950">
+              <SelectContent className="rounded-2xl border-slate-200 bg-white text-slate-900 shadow-2xl">
                 {(needsProvinceFilter ? PROVINCES : DISTRICTS).map((item) => (
-                  <SelectItem key={item} value={item}>{item}</SelectItem>
+                  <SelectItem key={item} value={item} className="text-slate-700 hover:bg-slate-50">{item}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

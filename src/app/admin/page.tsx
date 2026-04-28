@@ -152,7 +152,7 @@ export default function AdminPage() {
   };
 
   const handleEraseSubmissions = () => {
-    if (window.confirm("ERASE SUBMISSIONS? This will reset the Leaderboard, Answer Sheets, and uploaded Papers. History will be kept.")) {
+    if (window.confirm("ERASE SUBMISSIONS? This will reset the Student Leaderboard, Answer Sheets, and uploaded Papers. History will be kept.")) {
       const keysToRemove: string[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
