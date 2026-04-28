@@ -94,9 +94,21 @@ export default function Dashboard() {
     const init = async () => {
       const savedUser = localStorage.getItem("studentUser");
       if (savedUser) {
-        const u = JSON.parse(savedUser);
-        setUser(u);
-        loadAll(u);
+        try {
+          const u = JSON.parse(savedUser);
+          // Check if user object is complete (new format)
+          if (u.nic && u.name && u.province && u.district && u.category) {
+            setUser(u);
+            loadAll(u);
+          } else {
+            // Stale user data, clear and force new login flow
+            localStorage.removeItem("studentUser");
+            setUser(null);
+            setLoginStep(1);
+          }
+        } catch (e) {
+          localStorage.removeItem("studentUser");
+        }
       }
       setSubmissionsDisabled(localStorage.getItem("submissionsDisabled") === "true");
       setIsLoaded(true);
