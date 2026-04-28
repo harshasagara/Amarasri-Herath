@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain, User, ArrowRight, MapPin } from "lucide-react";
 import Link from "next/link";
 import clsx from "clsx";
 import { PROVINCES, PROVINCE_DISTRICTS } from "@/lib/regions";
+import { getStudentByNIC, upsertStudent, getStudentHistory } from "@/app/actions";
+import { supabase } from "@/lib/supabase/client";
 
 // ── AI Insight Card ───────────────────────────────────────────────────────────
 function AIInsight({ iq, gk }: { iq: number | null; gk: number | null }) {
@@ -58,6 +60,9 @@ export default function Dashboard() {
   const [province, setProvince] = useState("");
   const [district, setDistrict] = useState("");
   const [category, setCategory] = useState("Open");
+  
+  const [loginStep, setLoginStep] = useState(1); // 1: NIC, 2: Details
+  const [checkingNIC, setCheckingNIC] = useState(false);
   const [submissionsDisabled, setSubmissionsDisabled] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,11 +70,24 @@ export default function Dashboard() {
   const [submittedIQ, setSubmittedIQ] = useState(false);
   const [submittedGK, setSubmittedGK] = useState(false);
 
-  const loadAll = (u: { nic: string; name: string; province: string; district: string }) => {
-    const sc = JSON.parse(localStorage.getItem(`studentScores_${u.nic}`) || "{}");
-    setScores({ iq: sc.iq ?? null, gk: sc.gk ?? null });
-    setSubmittedIQ(localStorage.getItem(`submittedIQ_${u.nic}`) === "true");
-    setSubmittedGK(localStorage.getItem(`submittedGK_${u.nic}`) === "true");
+  const loadAll = async (u: { nic: string }) => {
+    // 1. Fetch scores from Supabase
+    const { data: result } = await supabase
+      .from('students_results')
+      .select('iq_marks, gk_marks')
+      .eq('nic', u.nic)
+      .single();
+
+    if (result) {
+      setScores({ iq: result.iq_marks ?? null, gk: result.gk_marks ?? null });
+      setSubmittedIQ(result.iq_marks !== null);
+      setSubmittedGK(result.gk_marks !== null);
+      
+      // Sync to local storage for quick access in components
+      localStorage.setItem(`submittedIQ_${u.nic}`, result.iq_marks !== null ? "true" : "false");
+      localStorage.setItem(`submittedGK_${u.nic}`, result.gk_marks !== null ? "true" : "false");
+      localStorage.setItem(`studentScores_${u.nic}`, JSON.stringify({ iq: result.iq_marks, gk: result.gk_marks }));
+    }
   };
 
   useEffect(() => {
@@ -86,30 +104,68 @@ export default function Dashboard() {
     init();
   }, []);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleNICCheck = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nic) return;
+    
+    setCheckingNIC(true);
     setError(null);
-    if (nic && name && province && district) {
-      const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-      if (registeredUsers[nic]) {
-        if (registeredUsers[nic].trim().toLowerCase() !== name.trim().toLowerCase()) {
-          setError("The name entered does not match our records for this ID Number.");
-          return;
-        }
+    
+    try {
+      const res = await getStudentByNIC(nic);
+      if (res.success && res.data) {
+        // User exists, log them in automatically
+        const existingUser = res.data;
+        const userData = {
+          nic: existingUser.nic,
+          name: existingUser.name,
+          province: existingUser.province,
+          district: existingUser.district,
+          category: existingUser.category
+        };
+        localStorage.setItem("studentUser", JSON.stringify(userData));
+        setUser(userData);
+        loadAll(userData);
       } else {
-        registeredUsers[nic] = name.trim();
-        localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
+        // User is new, move to step 2
+        setLoginStep(2);
       }
-      const newUser = { nic, name: name.trim(), province, district, category };
-      localStorage.setItem("studentUser", JSON.stringify(newUser));
-      setUser(newUser);
-      loadAll(newUser);
+    } catch (err) {
+      setError("Connection error. Please try again.");
+    } finally {
+      setCheckingNIC(false);
+    }
+  };
+
+  const handleRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nic || !name || !province || !district) return;
+    
+    setError(null);
+    const newUser = { nic, name: name.trim(), province, district, category };
+    
+    try {
+      const res = await upsertStudent(newUser);
+      if (res.success) {
+        localStorage.setItem("studentUser", JSON.stringify(newUser));
+        setUser(newUser);
+        loadAll(newUser);
+      } else {
+        setError("Failed to register. Please try again.");
+      }
+    } catch (err) {
+      setError("Something went wrong. Please check your connection.");
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem("studentUser");
     setUser(null);
+    setNic("");
+    setName("");
+    setProvince("");
+    setDistrict("");
+    setLoginStep(1);
     setScores({ iq: null, gk: null });
     setSubmittedIQ(false);
     setSubmittedGK(false);
@@ -117,71 +173,136 @@ export default function Dashboard() {
 
   if (!isLoaded) return null;
 
-  // ── Login Form ──────────────────────────────────────────────────────────────
+  // ── Login Form (Multi-Step) ──────────────────────────────────────────────────
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] py-12">
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onSubmit={handleLogin}
-          className="glass-panel p-8 w-full max-w-md flex flex-col gap-6"
-        >
-          <div className="text-center mb-4">
-            <h1 className="text-3xl font-bold text-white">Student Login</h1>
-            <p className="text-slate-400 mt-2">Enter your credentials to access the exams.</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-slate-300">ID Number (NIC)</label>
-            <input required type="text" value={nic} onChange={(e) => setNic(e.target.value)} className="glass-input" placeholder="Enter NIC" />
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-slate-300">Full Name</label>
-            <input required type="text" value={name} onChange={(e) => setName(e.target.value)} className="glass-input" placeholder="Enter Full Name" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-300">Province</label>
-              <select required value={province} onChange={(e) => { setProvince(e.target.value); setDistrict(""); }} className="glass-input appearance-none bg-slate-900">
-                <option value="">Select</option>
-                {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-semibold text-slate-300">District</label>
-              <select required value={district} onChange={(e) => setDistrict(e.target.value)} className="glass-input appearance-none bg-slate-900">
-                <option value="">Select</option>
-                {province && (PROVINCE_DISTRICTS[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-semibold text-slate-300">Candidate Type / කාණ්ඩය</label>
-            <div className="flex bg-slate-800/60 p-1 rounded-xl border border-slate-700 gap-1">
-              {["Open", "limited"].map((cat) => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => setCategory(cat)}
-                  className={clsx(
-                    "flex-1 py-2.5 rounded-lg text-sm font-black uppercase tracking-widest transition-all",
-                    category === cat
-                      ? "bg-primary text-white shadow-md"
-                      : "text-slate-400 hover:text-slate-200"
-                  )}
+      <div className="flex flex-col items-center justify-center min-h-[70vh] py-12 px-4">
+        <AnimatePresence mode="wait">
+          {loginStep === 1 ? (
+            <motion.div
+              key="step1"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              className="glass-panel p-8 w-full max-w-md flex flex-col gap-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-violet-500" />
+              <div className="text-center">
+                <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mx-auto mb-4">
+                  <User className="w-8 h-8 text-cyan-400" />
+                </div>
+                <h1 className="text-3xl font-black text-white tracking-tight">Welcome Back</h1>
+                <p className="text-slate-400 mt-2 text-sm">Enter your ID Number to continue.</p>
+              </div>
+
+              <form onSubmit={handleNICCheck} className="flex flex-col gap-5">
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400/70 ml-1">Identity Number (NIC)</label>
+                  <div className="relative">
+                    <input 
+                      required 
+                      type="text" 
+                      value={nic} 
+                      onChange={(e) => setNic(e.target.value)} 
+                      className="glass-input pl-11 h-14 text-lg font-bold tracking-wider" 
+                      placeholder="e.g. 199912345678" 
+                    />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+                  </div>
+                </div>
+
+                {error && <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold text-center">{error}</div>}
+
+                <button 
+                  type="submit" 
+                  disabled={checkingNIC}
+                  className="mt-2 h-14 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 text-white font-black uppercase tracking-[0.2em] text-xs hover:shadow-lg hover:shadow-cyan-500/25 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
                 >
-                  {cat}
+                  {checkingNIC ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+                  ) : (
+                    <>Next Step <ArrowRight className="w-4 h-4" /></>
+                  )}
                 </button>
-              ))}
-            </div>
-          </div>
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-medium">{error}</div>
+              </form>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="step2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="glass-panel p-8 w-full max-w-lg flex flex-col gap-8 shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500" />
+              <div className="flex items-center gap-4 mb-2">
+                <button onClick={() => setLoginStep(1)} className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                  <ArrowRight className="w-4 h-4 text-white rotate-180" />
+                </button>
+                <div>
+                  <h1 className="text-2xl font-black text-white tracking-tight">Complete Profile</h1>
+                  <p className="text-slate-400 text-xs">New identity detected. Please provide your details.</p>
+                </div>
+              </div>
+
+              <form onSubmit={handleRegistration} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/70 ml-1">Full Name</label>
+                  <input required type="text" value={name} onChange={(e) => setName(e.target.value)} className="glass-input h-12" placeholder="Full Name" />
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/70 ml-1">Province</label>
+                  <div className="relative">
+                    <select required value={province} onChange={(e) => { setProvince(e.target.value); setDistrict(""); }} className="glass-input h-12 appearance-none bg-slate-900 pr-10">
+                      <option value="">Select</option>
+                      {PROVINCES.map(p => <option key={p} value={p}>{p}</option>)}
+                    </select>
+                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/70 ml-1">District</label>
+                  <div className="relative">
+                    <select required value={district} onChange={(e) => setDistrict(e.target.value)} className="glass-input h-12 appearance-none bg-slate-900 pr-10">
+                      <option value="">Select</option>
+                      {province && (PROVINCE_DISTRICTS[province] || []).map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                    <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-400/70 ml-1">Candidate Type / කාණ්ඩය</label>
+                  <div className="flex bg-slate-950/50 p-1.5 rounded-xl border border-white/5 gap-2">
+                    {["Open", "limited"].map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategory(cat)}
+                        className={clsx(
+                          "flex-1 py-3 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                          category === cat
+                            ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-lg"
+                            : "text-slate-500 hover:text-slate-300 hover:bg-white/5"
+                        )}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {error && <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold text-center md:col-span-2">{error}</div>}
+
+                <button type="submit" className="md:col-span-2 h-14 rounded-xl bg-white text-slate-950 font-black uppercase tracking-[0.2em] text-xs hover:bg-cyan-50 shadow-xl transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                  Complete Registration <CheckCircle className="w-4 h-4" />
+                </button>
+              </form>
+            </motion.div>
           )}
-          <button type="submit" className="mt-4 py-3.5 rounded-xl bg-primary text-white font-bold uppercase tracking-wider hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-            <Lock className="w-5 h-5" /> Secure Login
-          </button>
-        </motion.form>
+        </AnimatePresence>
       </div>
     );
   }
@@ -192,14 +313,14 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col items-center gap-6 md:gap-8 relative pb-8">
       {/* Logout */}
-      <button onClick={handleLogout} className="absolute top-0 right-0 flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors">
-        <LogOut className="w-4 h-4" /> Logout
+      <button onClick={handleLogout} className="absolute top-0 right-0 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-white transition-colors">
+        <LogOut className="w-3.5 h-3.5" /> Logout
       </button>
 
       {/* Welcome */}
       <div className="text-center pt-2">
-        <h1 className="text-4xl font-bold mb-2">Welcome, <span className="text-primary">{user.name}</span></h1>
-        <p className="text-slate-400 text-lg">
+        <h1 className="text-4xl font-black text-white tracking-tight mb-2">Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">{user.name}</span></h1>
+        <p className="text-slate-500 text-lg font-medium">
           {submissionsDisabled ? "Exam period has ended. Thank you for participating." : "Select the answer sheet you wish to complete."}
         </p>
       </div>
@@ -207,26 +328,27 @@ export default function Dashboard() {
       {/* Score Summary */}
       {(submittedIQ || submittedGK) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-lg">
-          <div className="rounded-2xl p-5" style={{ background: "rgba(8,14,30,0.65)", border: "1px solid rgba(220,20,60,0.25)", boxShadow: "0 0 30px rgba(220,20,60,0.08)" }}>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Your Score Summary</p>
+          <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: "rgba(8,14,30,0.65)", border: "1px solid rgba(220,20,60,0.2)", boxShadow: "0 0 40px rgba(0,0,0,0.3)" }}>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500/40 to-violet-500/40" />
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30 mb-6 text-center">Academic Performance Summary</p>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-1"><Brain className="w-5 h-5 text-primary" /></div>
-                <span className="text-2xl font-black text-primary">{submittedIQ ? (scores.iq ?? 0) : "—"}</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase">IQ / 100</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center mb-1"><Brain className="w-6 h-6 text-cyan-400" /></div>
+                <span className="text-3xl font-black text-white tracking-tight">{submittedIQ ? (scores.iq ?? 0) : "—"}</span>
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">IQ / 100</span>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-1"><Globe className="w-5 h-5 text-white" /></div>
-                <span className="text-2xl font-black text-white">{submittedGK ? (scores.gk ?? 0) : "—"}</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase">GK / 100</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-1"><Globe className="w-6 h-6 text-white/80" /></div>
+                <span className="text-3xl font-black text-white tracking-tight">{submittedGK ? (scores.gk ?? 0) : "—"}</span>
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">GK / 100</span>
               </div>
-              <div className="flex flex-col items-center gap-1">
-                <div className="w-10 h-10 rounded-xl bg-yellow-500/10 flex items-center justify-center mb-1"><Trophy className="w-5 h-5 text-yellow-500" /></div>
-                <span className={clsx("text-2xl font-black", bothDone ? "text-yellow-400" : "text-slate-500")}>{bothDone ? totalScore : "—"}</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Total / 200</span>
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mb-1"><Trophy className="w-6 h-6 text-yellow-400" /></div>
+                <span className={clsx("text-3xl font-black tracking-tight", bothDone ? "text-transparent bg-clip-text bg-gradient-to-br from-yellow-300 to-amber-500" : "text-slate-700")}>{bothDone ? totalScore : "—"}</span>
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest">Total / 200</span>
               </div>
             </div>
-            {!bothDone && <p className="text-center text-xs text-slate-600 mt-4">Complete both papers to see your total score.</p>}
+            {!bothDone && <div className="mt-6 p-3 rounded-xl bg-white/5 text-center text-[10px] font-bold text-white/40 uppercase tracking-widest">Complete both papers to unlock total ranking</div>}
           </div>
         </motion.div>
       )}
@@ -235,40 +357,60 @@ export default function Dashboard() {
       {(submittedIQ || submittedGK) && <AIInsight iq={scores.iq} gk={scores.gk} />}
 
       {/* Exam Cards */}
-      <div className="w-full max-w-4xl">
+      <div className="w-full max-w-4xl px-4">
         {submissionsDisabled ? (
           <div className="flex flex-col items-center gap-8">
-            <div className="glass-panel p-6 text-center text-slate-300 w-full max-w-lg border-slate-700">
-              <p className="font-medium">Submissions are now closed.</p>
-              <p className="text-sm text-slate-500 mt-1">Please view the global rankings on the leaderboard.</p>
+            <div className="glass-panel p-8 text-center text-slate-300 w-full max-w-lg border-white/5">
+              <p className="font-bold text-lg">Submissions are now closed.</p>
+              <p className="text-sm text-slate-500 mt-2">The examination window has officially ended. Please view your final standing on the leaderboard.</p>
             </div>
-            <Link href="/leaderboard" className="px-10 py-4 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold uppercase tracking-widest hover:bg-slate-700 transition-colors flex items-center gap-3 shadow-sm">
-              <Trophy className="w-5 h-5 text-yellow-500" /> View Leaderboard
+            <Link href="/leaderboard" className="px-10 py-4 rounded-2xl bg-white text-slate-950 font-black uppercase tracking-[0.2em] text-xs hover:bg-cyan-50 transition-all flex items-center gap-3 shadow-2xl">
+              <Trophy className="w-4 h-4" /> View Leaderboard
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-            <Link href="/entry?type=iq" className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedIQ ? "opacity-70" : "hover:border-primary/40")}>
-              {submittedIQ && <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Done</div>}
-              <div className="p-4 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors"><BrainCircuit className="w-12 h-12" /></div>
+            <Link href="/entry?type=iq" className={clsx("glass-panel p-8 md:p-12 flex flex-col items-center gap-6 transition-all group relative overflow-hidden", submittedIQ ? "opacity-60 grayscale-[0.5]" : "hover:border-cyan-500/40 hover:shadow-cyan-500/10")}>
+              {submittedIQ && <div className="absolute top-4 right-4 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 z-10">COMPLETED</div>}
+              <div className="p-5 rounded-2xl bg-cyan-500/10 text-cyan-400 group-hover:bg-cyan-500 group-hover:text-white transition-all duration-500 shadow-lg shadow-cyan-500/5"><BrainCircuit className="w-16 h-16" /></div>
               <div className="text-center">
-                <h2 className="text-2xl font-bold">IQ Answer Sheet</h2>
-                <p className="text-slate-500 text-sm mt-1 uppercase tracking-tighter">Submit Intelligence Test</p>
-                {submittedIQ && <p className="text-primary font-bold mt-2">Score: {scores.iq ?? 0} / 100</p>}
+                <h2 className="text-2xl font-black text-white tracking-tight">IQ Answer Sheet</h2>
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.15em] mt-2">Intelligence Assessment</p>
+                {submittedIQ && <div className="mt-6 font-black text-2xl text-cyan-400 tracking-tighter">{scores.iq ?? 0} <span className="text-[10px] text-slate-600 uppercase">Points</span></div>}
               </div>
             </Link>
-            <Link href="/entry?type=gk" className={clsx("glass-panel p-6 md:p-10 landscape:p-4 flex flex-col items-center gap-4 md:gap-6 landscape:gap-2 transition-all group relative", submittedGK ? "opacity-70" : "hover:border-secondary/40")}>
-              {submittedGK && <div className="absolute top-3 right-3 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">✓ Done</div>}
-              <div className="p-4 rounded-xl bg-secondary/10 text-secondary group-hover:bg-secondary group-hover:text-white transition-colors"><Globe className="w-12 h-12" /></div>
+            <Link href="/entry?type=gk" className={clsx("glass-panel p-8 md:p-12 flex flex-col items-center gap-6 transition-all group relative overflow-hidden", submittedGK ? "opacity-60 grayscale-[0.5]" : "hover:border-fuchsia-500/40 hover:shadow-fuchsia-500/10")}>
+              {submittedGK && <div className="absolute top-4 right-4 text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 z-10">COMPLETED</div>}
+              <div className="p-5 rounded-2xl bg-fuchsia-500/10 text-fuchsia-400 group-hover:bg-fuchsia-500 group-hover:text-white transition-all duration-500 shadow-lg shadow-fuchsia-500/5"><Globe className="w-16 h-16" /></div>
               <div className="text-center">
-                <h2 className="text-2xl font-bold">GK Answer Sheet</h2>
-                <p className="text-slate-500 text-sm mt-1 uppercase tracking-tighter">Submit General Knowledge</p>
-                {submittedGK && <p className="text-white font-bold mt-2">Score: {scores.gk ?? 0} / 100</p>}
+                <h2 className="text-2xl font-black text-white tracking-tight">GK Answer Sheet</h2>
+                <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.15em] mt-2">General Knowledge</p>
+                {submittedGK && <div className="mt-6 font-black text-2xl text-fuchsia-400 tracking-tighter">{scores.gk ?? 0} <span className="text-[10px] text-slate-600 uppercase">Points</span></div>}
               </div>
             </Link>
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function CheckCircle(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
   );
 }
