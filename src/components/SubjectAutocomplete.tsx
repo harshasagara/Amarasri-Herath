@@ -52,10 +52,10 @@ export function SubjectAutocomplete({
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute z-50 mt-2 w-full max-h-60 overflow-auto rounded-xl border bg-white shadow-2xl p-2 animate-in fade-in zoom-in-95">
+          <div className="absolute z-50 mt-2 w-full max-h-60 overflow-auto rounded-xl border border-white/10 bg-slate-900/95 backdrop-blur-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 ring-1 ring-white/10">
             <input 
               type="text" 
-              className="w-full p-2 mb-2 border-b text-sm focus:outline-none" 
+              className="w-full p-2 mb-2 bg-white/5 border-b border-white/10 text-sm focus:outline-none text-white placeholder-white/30 rounded-lg" 
               placeholder="Search..." 
               autoFocus
               value={searchTerm}
@@ -67,8 +67,10 @@ export function SubjectAutocomplete({
                   <div
                     key={opt.value}
                     className={cn(
-                      "p-2 text-sm rounded-lg cursor-pointer hover:bg-primary/5 transition-colors",
-                      selectedLabel === opt.value ? "bg-primary/10 text-primary font-bold" : "text-slate-600"
+                      "p-2.5 text-sm rounded-lg cursor-pointer transition-all",
+                      selectedLabel === opt.value 
+                        ? "bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/20" 
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
                     )}
                     onClick={() => {
                       setSelectedLabel(opt.value);
@@ -81,7 +83,7 @@ export function SubjectAutocomplete({
                   </div>
                 ))
               ) : (
-                <div className="p-2 text-sm text-muted-foreground">No subjects found</div>
+                <div className="p-2 text-sm text-white/40 italic">No subjects found</div>
               )}
             </div>
           </div>

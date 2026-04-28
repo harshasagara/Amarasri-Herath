@@ -174,7 +174,7 @@ export default function Leaderboard() {
         </div>
 
         {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-30">
           {/* Subject */}
           <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-cyan-500/30 transition-all">
             <div className="flex items-center gap-2 mb-3">
@@ -249,7 +249,7 @@ export default function Leaderboard() {
         </div>
 
         {/* Results Table */}
-        <div className="rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm overflow-hidden">
+        <div className="rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm overflow-hidden relative z-10">
           {/* Table Header Bar */}
           <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
