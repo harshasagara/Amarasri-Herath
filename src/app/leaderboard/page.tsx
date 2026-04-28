@@ -1,606 +1,391 @@
+
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { 
-  Trophy, 
-  Search, 
-  ChevronDown, 
-  Filter, 
-  Globe, 
-  MapPin, 
-  BookOpen, 
-  Search as SearchIcon,
-  Check,
-  Award,
-  Medal,
-  RefreshCw,
-  X,
-  LayoutGrid,
-  Table as TableIcon,
-  Monitor,
-  Smartphone
-} from "lucide-react";
-import clsx from "clsx";
-import { supabase } from "@/lib/supabase";
-import { PROVINCES, PROVINCE_DISTRICTS, ALL_DISTRICTS } from "@/lib/regions";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { supabase } from "@/lib/supabase/client";
+import { getAdminRankings, getSystemConfig } from "@/app/actions";
+import { StudentResult } from "@/types";
+import { PROVINCES, DISTRICTS } from "@/lib/constants";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { Loader2, Trophy, Medal, Star, Filter, MapPin, Search as SearchIcon } from "lucide-react";
+import { SubjectAutocomplete } from "@/components/SubjectAutocomplete";
 
-// --- Constants & Data ---
-
-const SUBJECTS = [
-  "Mathematics", "Science", "English", "Sinhala", "Tamil", "History", "Geography", 
-  "Economics", "Accounting", "ICT", "Civics", "Buddhism", "Christianity", "Islam", 
-  "Hinduism", "Agriculture", "Art", "Music", "Dancing", "Health Science", 
-  "Political Science", "Business Studies", "Psychology", "Sociology", "Statistics"
-];
-
-interface StudentEntry {
-  id: string;
-  child_name: string;
-  nic_number: string;
-  province: string;
-  district: string;
-  subject: string;
-  iq_score: number;
-  gk_score: number;
-  timestamp: string;
-  rank?: number;
-}
-
-// --- Components ---
-
-const Dropdown = ({ label, options, value, onChange, icon: Icon, prominent = false }: any) => {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="relative group flex-1 min-w-[140px]">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={clsx(
-          "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl transition-all duration-300",
-          "border backdrop-blur-md shadow-sm",
-          prominent 
-            ? "bg-blue-600/10 border-blue-500/30 text-blue-400 hover:bg-blue-600/20" 
-            : "bg-slate-900/40 border-white/5 text-slate-300 hover:bg-slate-900/60"
-        )}
-      >
-        <div className="flex items-center gap-2 text-sm font-semibold truncate">
-          {Icon && <Icon className="w-4 h-4 opacity-70 shrink-0" />}
-          <span className="truncate">{value || label}</span>
-        </div>
-        <ChevronDown className={clsx("w-4 h-4 transition-transform duration-300 shrink-0", isOpen && "rotate-180")} />
-      </button>
-      
-      <AnimatePresence>
-        {isOpen && (
-          <>
-            <div className="fixed inset-0 z-20" onClick={() => setIsOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute left-0 right-0 mt-2 z-30 max-h-60 overflow-y-auto glass-panel border-white/10 shadow-2xl p-1 custom-scrollbar bg-slate-900/95"
-            >
-              {options.map((opt: string) => (
-                <button
-                  key={opt}
-                  onClick={() => {
-                    onChange(opt);
-                    setIsOpen(false);
-                  }}
-                  className={clsx(
-                    "w-full text-left px-4 py-2.5 rounded-xl text-sm transition-colors mb-0.5",
-                    value === opt ? "bg-blue-600/20 text-blue-400 font-bold" : "text-slate-400 hover:bg-white/5 hover:text-white"
-                  )}
-                >
-                  {opt}
-                </button>
-              ))}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-const StyledToggle = ({ label, active, onToggle, color = "blue" }: any) => (
-  <button
-    onClick={onToggle}
-    className="flex items-center gap-3 group px-4 py-2 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all duration-300"
-  >
-    <div className={clsx(
-      "w-9 h-5 rounded-full relative transition-all duration-500 ease-out",
-      active ? (color === "blue" ? "bg-blue-600" : "bg-indigo-600") : "bg-slate-800"
-    )}>
-      <div className={clsx(
-        "absolute top-1 w-3 h-3 rounded-full bg-white transition-all duration-500 ease-out shadow-lg",
-        active ? "left-5" : "left-1"
-      )} />
-    </div>
-    <span className={clsx(
-      "text-[11px] font-black uppercase tracking-widest transition-colors",
-      active ? "text-white" : "text-slate-500"
-    )}>
-      {label}
-    </span>
-  </button>
-);
-
-const FilterBadge = ({ label, value, onRemove }: any) => {
-  if (!value || value === "Province" || value === "District" || value === "Island (Global)") return null;
-  
-  return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.8 }}
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-wider"
-    >
-      <span>{label}: {value}</span>
-      <button onClick={onRemove} className="hover:text-white transition-colors">
-        <X className="w-3 h-3" />
-      </button>
-    </motion.div>
-  );
-};
-
-export default function LeaderboardPage() {
-  const [data, setData] = useState<StudentEntry[]>([]);
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState({
-    province: "Province",
-    district: "District",
-    subject: "Mathematics"
-  });
-  const [toggles, setToggles] = useState({ iq: true, gk: true });
+export default function Leaderboard() {
+  const [activeTab, setActiveTab] = useState("island");
+  const [data, setData] = useState<StudentResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isLandscape, setIsLandscape] = useState(false);
+  
+  const [selectedProvince, setSelectedProvince] = useState<string>("");
+  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Open");
+  const [rankingMode, setRankingMode] = useState<string>("general");
+  const [viewRankings, setViewRankings] = useState<boolean>(true);
 
-  // Check orientation for landscape optimization
-  useEffect(() => {
-    const checkOrientation = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight && window.innerWidth < 1024);
-    };
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    return () => window.removeEventListener('resize', checkOrientation);
-  }, []);
-
-  const fetchLeaderboard = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
-    try {
-      const { data: lbData, error } = await supabase
-        .from('children_scores')
-        .select('*')
-        .order('iq_score', { ascending: false }); // Default sorting
+    let sortBy: "total_marks" | "iq_marks" | "gk_marks" = "total_marks";
+    let filterProvince = undefined;
+    let filterDistrict = undefined;
 
-      if (error) throw error;
+    if (activeTab.includes("province")) filterProvince = selectedProvince || PROVINCES[0];
+    if (activeTab.includes("district")) filterDistrict = selectedDistrict || DISTRICTS[0];
 
-      if (lbData) {
-        // Calculate ranks based on total score (IQ + GK)
-        const sortedData = lbData.map((item: any) => ({
-          ...item,
-          total_score: (item.iq_score || 0) + (item.gk_score || 0)
-        })).sort((a, b) => b.total_score - a.total_score);
+    if (activeTab === "iq_ranking") sortBy = "iq_marks";
+    if (activeTab === "gk_ranking") sortBy = "gk_marks";
 
-        const formattedData = sortedData.map((item: any, idx: number) => ({
-          ...item,
-          rank: idx + 1
-        }));
-        
-        setData(formattedData);
-      }
-    } catch (err) {
-      console.error("Error fetching leaderboard:", err);
-    } finally {
-      setLoading(false);
+    const response = await getAdminRankings({
+      subject: (selectedSubject && selectedSubject !== "ALL_SUBJECTS") ? selectedSubject : undefined,
+      province: filterProvince,
+      district: filterDistrict,
+      category: selectedCategory,
+      sortBy
+    });
+
+    if (response.success) {
+      setData(response.data || []);
     }
-  };
+    setLoading(false);
+  }, [activeTab, selectedProvince, selectedDistrict, selectedSubject, selectedCategory]);
 
   useEffect(() => {
-    fetchLeaderboard();
+    const checkConfig = async () => {
+      const config = await getSystemConfig();
+      if (config.ranking_mode) setRankingMode(config.ranking_mode);
+      setViewRankings(config.view_rankings);
+    };
+    checkConfig();
 
-    // Set up real-time subscription
+    fetchData();
+
     const channel = supabase
-      .channel('leaderboard-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'children_scores' }, () => {
-        fetchLeaderboard();
-      })
+      .channel('public-leaderboard')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'students_results' },
+        () => { fetchData(); }
+      )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchData]);
 
-  const filteredData = useMemo(() => {
-    return data.filter(item => {
-      const matchesSearch = item.child_name.toLowerCase().includes(search.toLowerCase()) || 
-                           item.nic_number.toLowerCase().includes(search.toLowerCase());
-      const matchesSubject = item.subject === filters.subject;
-      const matchesProvince = filters.province === "Province" || item.province === filters.province;
-      const matchesDistrict = filters.district === "District" || item.district === filters.district;
-      
-      return matchesSearch && matchesSubject && matchesProvince && matchesDistrict;
+  const rankedData = useMemo(() => {
+    const groups: (Omit<StudentResult, 'nic' | 'subject'>)[] = [];
+    const nameMap = new Map<string, number>();
+    data.forEach((student: StudentResult) => {
+      const key = `${student.nic}-${student.category}`;
+      if (!nameMap.has(key)) {
+        nameMap.set(key, groups.length);
+        const { nic, subject, ...safeStudent } = student;
+        groups.push(safeStudent);
+      }
     });
-  }, [data, search, filters]);
 
-  const getRankBadge = (rank: number) => {
-    switch(rank) {
-      case 1: return <div className="w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center text-yellow-500 shadow-[0_0_20px_rgba(234,179,8,0.3)] ring-1 ring-yellow-500/20"><Trophy className="w-6 h-6" /></div>;
-      case 2: return <div className="w-10 h-10 rounded-xl bg-slate-300/20 border border-slate-300/50 flex items-center justify-center text-slate-300 shadow-[0_0_20px_rgba(203,213,225,0.2)] ring-1 ring-slate-300/20"><Medal className="w-6 h-6" /></div>;
-      case 3: return <div className="w-10 h-10 rounded-xl bg-orange-600/20 border border-orange-600/50 flex items-center justify-center text-orange-500 shadow-[0_0_20px_rgba(234,88,12,0.2)] ring-1 ring-orange-600/20"><Award className="w-6 h-6" /></div>;
-      default: return <div className="w-10 h-10 flex items-center justify-center font-mono font-black text-slate-500 text-lg opacity-40">#{rank}</div>;
-    }
-  };
+    let lastScore = -1;
+    let lastRank = 1;
+    return groups.map((student: any, index) => {
+      const currentScore = (activeTab === "iq_ranking") ? student.iq_marks : 
+                           (activeTab === "gk_ranking") ? student.gk_marks : 
+                           student.total_marks;
+      
+      if (currentScore !== lastScore) {
+        lastRank = index + 1;
+        lastScore = currentScore;
+      }
+      return { ...student, rank: lastRank };
+    });
+  }, [data, activeTab]);
+
+  const needsProvinceFilter = activeTab === "province";
+  const needsDistrictFilter = activeTab === "district";
+
+  if (!viewRankings) {
+    return (
+      <div className="w-full max-w-2xl mx-auto py-24 md:py-32 px-6 text-center">
+        <div className="bg-white rounded-[3.5rem] p-16 shadow-2xl shadow-primary/5 border border-primary/5 flex flex-col items-center">
+          <div className="bg-primary/5 p-10 rounded-[3rem] text-primary mb-10 ring-8 ring-primary/5">
+            <Star className="w-20 h-20 opacity-20" />
+          </div>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-6">Leaderboard Restricted</h2>
+          <p className="text-slate-500 font-bold mb-12 leading-relaxed text-lg opacity-70">
+            The public leaderboard is currently hidden by the administrator. Please check back later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-[#070b14] text-slate-200 pb-20 font-sans selection:bg-blue-500/30">
-      {/* Background Decorative Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/10 blur-[120px] rounded-full" />
+    <div className="w-full max-w-6xl mx-auto py-8 md:py-12 px-4 md:px-6">
+      {/* Header section */}
+      <div className="relative overflow-hidden bg-[#0a0a0f] text-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-16 mb-8 md:mb-12 shadow-2xl">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 blur-[100px] -mr-32 -mt-32" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-secondary/10 blur-[100px] -ml-32 -mb-32" />
+        
+        <div className="relative z-10 flex flex-col items-center text-center space-y-6">
+          <div className="bg-gradient-to-br from-amber-400 to-orange-500 w-16 h-16 md:w-20 md:h-20 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-lg transform rotate-3">
+            <Trophy className="w-8 h-8 md:w-10 md:h-10 text-white" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-3xl md:text-6xl font-black tracking-tighter">Merit <span className="text-primary italic">Leaderboard</span></h1>
+            <p className="text-gray-400 font-medium text-sm md:text-lg max-w-2xl px-4">
+              Celebrating excellence and dedication. See where you stand among all registered performers.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 md:px-8 pt-8 md:pt-12 space-y-8">
-        
-        {/* Header Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col lg:flex-row lg:items-center justify-between gap-8"
-        >
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.2em]">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-              Real-time Analytics
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white leading-none">
-              Student <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-400">Leaderboard</span>
-            </h1>
-            <p className="text-slate-500 font-medium text-lg max-w-2xl">Visualizing academic excellence and performance across the island.</p>
-          </div>
+      <div className="space-y-6 md:space-y-8">
+        {/* Navigation Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="flex flex-wrap h-auto p-1.5 bg-white rounded-[1.5rem] md:rounded-[2rem] shadow-xl border gap-1 md:gap-2">
+            {[
+              { v: "island", l: "Island" },
+              { v: "province", l: "Province" },
+              { v: "district", l: "District" },
+              { v: "iq_ranking", l: "IQ" },
+              { v: "gk_ranking", l: "GK" }
+            ].map((tab) => (
+              <TabsTrigger 
+                key={tab.v} value={tab.v} 
+                className="flex-1 py-2.5 md:py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white transition-all min-w-[70px]"
+              >
+                {tab.l}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
-          <div className="relative w-full lg:w-[400px] group">
-            <SearchIcon className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 group-focus-within:text-blue-500 transition-all duration-300" />
-            <input 
-              type="text"
-              placeholder="Search Name or NIC..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-slate-900/50 border border-white/5 rounded-2xl py-4 pl-14 pr-6 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/40 transition-all backdrop-blur-xl shadow-inner placeholder:text-slate-600"
+        {/* Dynamic Filters */}
+        <div className="flex flex-col md:flex-row gap-4 md:gap-6">
+          <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5">
+            <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
+              <Star className="w-3.5 h-3.5" />
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Select Subject</p>
+            </div>
+            <SubjectAutocomplete 
+              defaultValue={selectedSubject} 
+              onSelect={setSelectedSubject} 
+              showAllOption={true}
+              placeholder="All Subjects"
+              className="h-12 md:h-14 border-2 rounded-xl"
             />
           </div>
-        </motion.div>
 
-        {/* Filter & Control Bar */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="glass-panel p-6 border-white/[0.03] bg-slate-900/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-6"
-        >
-          <div className="flex flex-col xl:flex-row gap-6">
-            {/* Location Selectors */}
-            <div className="flex flex-wrap gap-4 flex-1">
-              <Dropdown 
-                label="Province" 
-                options={["Province", ...PROVINCES]} 
-                value={filters.province} 
-                onChange={(v: string) => setFilters({...filters, province: v, district: "District"})} 
-                icon={Globe}
-              />
-              <Dropdown 
-                label="District" 
-                options={["District", ...(filters.province === "Province" ? ALL_DISTRICTS : (PROVINCE_DISTRICTS[filters.province] || []))]} 
-                value={filters.district} 
-                onChange={(v: string) => setFilters({...filters, district: v})} 
-                icon={MapPin}
-              />
-              <div className="w-full sm:w-auto xl:w-80">
-                <Dropdown 
-                  label="Subject" 
-                  options={SUBJECTS} 
-                  value={filters.subject} 
-                  onChange={(v: string) => setFilters({...filters, subject: v})} 
-                  icon={BookOpen}
-                  prominent={true}
-                />
+          {(needsProvinceFilter || needsDistrictFilter) && (
+            <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5 animate-in slide-in-from-right-4">
+              <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
+                <MapPin className="w-3.5 h-3.5" />
+                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                  {needsProvinceFilter ? "Province Filter" : "District Filter"}
+                </p>
               </div>
-            </div>
-
-            {/* View Controls & Refresh */}
-            <div className="flex items-center gap-4 border-l border-white/5 pl-0 xl:pl-6">
-              <StyledToggle 
-                label="IQ" 
-                active={toggles.iq} 
-                onToggle={() => setToggles({...toggles, iq: !toggles.iq})} 
-                color="blue"
-              />
-              <StyledToggle 
-                label="GK" 
-                active={toggles.gk} 
-                onToggle={() => setToggles({...toggles, gk: !toggles.gk})} 
-                color="indigo"
-              />
-              <button 
-                onClick={fetchLeaderboard}
-                className="p-3 rounded-2xl bg-white/[0.03] border border-white/5 text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all duration-300"
+              <Select 
+                value={needsProvinceFilter ? selectedProvince : selectedDistrict} 
+                onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
               >
-                <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
-              </button>
+                <SelectTrigger className="h-12 md:h-14 rounded-xl border-2 border-input bg-background font-bold px-4">
+                  <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : "Choose District"} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  {(needsProvinceFilter ? PROVINCES : DISTRICTS).map((item) => (
+                    <SelectItem key={item} value={item} className="font-medium">{item}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </div>
-
-          {/* Active Filters UI */}
-          <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-white/[0.03]">
-            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-2 flex items-center gap-2">
-              <Filter className="w-3 h-3" />
-              Active Filters:
-            </div>
-            <AnimatePresence mode="popLayout">
-              <FilterBadge label="Subject" value={filters.subject} onRemove={() => setFilters({...filters, subject: "Mathematics"})} />
-              <FilterBadge label="Province" value={filters.province} onRemove={() => setFilters({...filters, province: "Province", district: "District"})} />
-              <FilterBadge label="District" value={filters.district} onRemove={() => setFilters({...filters, district: "District"})} />
-              {search && <FilterBadge label="Search" value={search} onRemove={() => setSearch("")} />}
-            </AnimatePresence>
-            {!search && filters.province === "Province" && filters.district === "District" && (
-              <span className="text-[10px] font-bold text-slate-700 italic">None active (Showing Island-wide)</span>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Main Table Section */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className={clsx(
-            "glass-panel border-white/[0.03] overflow-hidden bg-slate-900/40 shadow-2xl transition-all duration-700",
-            isLandscape ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 bg-transparent border-0 shadow-none" : "overflow-x-auto custom-scrollbar"
           )}
-        >
-          {isLandscape ? (
-            // Specialized Grid View for Landscape Mode
-            <LayoutGroup>
-              <AnimatePresence mode="popLayout">
-                {loading ? (
-                  Array.from({ length: 6 }).map((_, i) => (
-                    <div key={`skeleton-${i}`} className="h-40 rounded-3xl bg-slate-900/50 animate-pulse border border-white/5" />
-                  ))
-                ) : filteredData.length > 0 ? (
-                  filteredData.map((student, idx) => (
-                    <motion.div 
-                      key={student.id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.4, delay: idx * 0.05 }}
-                      className="glass-panel p-5 space-y-4 border-white/[0.05] group hover:border-blue-500/30 transition-all duration-300"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          {getRankBadge(student.rank || 0)}
-                          <div>
-                            <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors truncate max-w-[120px]">{student.child_name}</h3>
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{student.nic_number}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-2xl font-black text-white">{(student.iq_score || 0) + (student.gk_score || 0)}</span>
-                          <p className="text-[10px] font-black text-blue-500 uppercase">Total Score</p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 pt-4 border-t border-white/5">
-                        {toggles.iq && (
-                          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">IQ Score</p>
-                            <p className="text-lg font-black text-slate-200">{student.iq_score}</p>
-                          </div>
-                        )}
-                        {toggles.gk && (
-                          <div className="p-3 rounded-2xl bg-white/[0.02] border border-white/5">
-                            <p className="text-[9px] font-black text-slate-500 uppercase mb-1">GK Score</p>
-                            <p className="text-lg font-black text-slate-200">{student.gk_score}</p>
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))
-                ) : null}
-              </AnimatePresence>
-            </LayoutGroup>
-          ) : (
-            // Standard Table View
-            <table className="w-full text-left border-collapse min-w-[900px]">
-              <thead>
-                <tr className="bg-slate-950/60 border-b border-white/[0.03] sticky top-0 z-10 backdrop-blur-2xl">
-                  <th className="px-8 py-6 text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Rank</th>
-                  <th className="px-8 py-6 text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Candidate Info</th>
-                  <th className="px-8 py-6 text-xs font-black text-slate-500 uppercase tracking-[0.2em]">Region Details</th>
-                  <AnimatePresence mode="popLayout">
-                    {toggles.iq && (
-                      <motion.th 
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="px-8 py-6 text-xs font-black text-slate-500 uppercase tracking-[0.2em]"
-                      >
-                        IQ Score
-                      </motion.th>
-                    )}
-                    {toggles.gk && (
-                      <motion.th 
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="px-8 py-6 text-xs font-black text-slate-500 uppercase tracking-[0.2em]"
-                      >
-                        GK Score
-                      </motion.th>
-                    )}
-                  </AnimatePresence>
-                  <th className="px-8 py-6 text-xs font-black text-slate-500 uppercase tracking-[0.2em] text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.02]">
-                <AnimatePresence mode="popLayout">
-                  {loading ? (
-                    Array.from({ length: 8 }).map((_, i) => (
-                      <tr key={`skeleton-${i}`} className="animate-pulse">
-                        <td colSpan={6} className="px-8 py-8">
-                          <div className="h-6 bg-slate-800/50 rounded-xl w-full" />
-                        </td>
-                      </tr>
-                    ))
-                  ) : filteredData.length > 0 ? (
-                    filteredData.map((student, idx) => (
-                      <motion.tr 
-                        key={student.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.98 }}
-                        transition={{ duration: 0.3, delay: idx * 0.02 }}
-                        className={clsx(
-                          "group hover:bg-blue-600/[0.03] transition-all duration-500 relative",
-                          student.rank && student.rank <= 3 && "bg-white/[0.01]"
-                        )}
-                      >
-                        <td className="px-8 py-8">
-                          {getRankBadge(student.rank || 0)}
-                        </td>
-                        <td className="px-8 py-8">
-                          <div className="space-y-1">
-                            <span className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors block leading-tight">
-                              {student.child_name}
-                            </span>
-                            <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{student.nic_number}</span>
-                              <span className="w-1 h-1 rounded-full bg-slate-700" />
-                              <span className="text-[10px] font-bold text-blue-500/70">{student.subject}</span>
+
+          <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5 animate-in slide-in-from-right-4">
+            <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
+              <Filter className="w-3.5 h-3.5" />
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Candidate Type / කාණ්ඩය</p>
+            </div>
+            <div className="flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200">
+              {["Open", "limited"].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    selectedCategory === cat 
+                      ? 'bg-white text-primary shadow-lg ring-1 ring-primary/10' 
+                      : 'text-slate-400 hover:text-slate-600 hover:bg-neutral-200/50'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Results Section */}
+        <Card className="border-0 shadow-2xl shadow-primary/5 bg-white rounded-[2rem] md:rounded-[3rem] overflow-hidden">
+          <CardContent className="p-0">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center py-24 md:py-32 gap-6">
+                <Loader2 className="w-10 h-10 md:w-12 md:h-12 animate-spin text-primary opacity-40" />
+                <p className="font-black text-muted-foreground uppercase tracking-widest text-[10px]">Computing Ranks...</p>
+              </div>
+            ) : rankedData.length === 0 ? (
+              <div className="text-center py-20 md:py-24 px-10">
+                <div className="bg-gray-50 w-20 h-20 md:w-24 md:h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <SearchIcon className="w-8 h-8 md:w-10 md:h-10 text-gray-300" />
+                </div>
+                <h3 className="text-xl md:text-2xl font-black text-gray-900">No Champions Yet</h3>
+                <p className="text-gray-500 mt-2 font-medium text-sm md:text-base">Try different filters to find performers.</p>
+              </div>
+            ) : (
+              <div className="w-full">
+                {/* Desktop View Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader className="bg-neutral-50">
+                      <TableRow className="border-b-0">
+                        <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-6">Rank</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px]">Candidate</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px]">Location</TableHead>
+                        <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-12">Total Score</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {rankedData.map((student, index) => (
+                        <TableRow 
+                          key={index} 
+                          className={`group transition-all border-b border-neutral-100 last:border-0 ${
+                            student.rank === 1 ? 'bg-amber-50/40 hover:bg-amber-50' : 
+                            student.rank === 2 ? 'bg-slate-50/40 hover:bg-slate-50' : 
+                            student.rank === 3 ? 'bg-orange-50/40 hover:bg-orange-50' : 
+                            'hover:bg-primary/5'
+                          }`}
+                        >
+                          <TableCell className="py-8">
+                            <div className="flex justify-center items-center">
+                              {student.rank <= 3 ? (
+                                <div className={`
+                                  relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-xl font-black text-white transform -rotate-2 transition-all group-hover:rotate-0 group-hover:scale-110
+                                  ${student.rank === 1 ? 'bg-gradient-to-br from-amber-400 via-amber-500 to-amber-600 shadow-amber-200' : ''}
+                                  ${student.rank === 2 ? 'bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500 shadow-slate-200' : ''}
+                                  ${student.rank === 3 ? 'bg-gradient-to-br from-orange-300 via-orange-400 to-orange-500 shadow-orange-200' : ''}
+                                `}>
+                                  <span className="text-xl">#{student.rank}</span>
+                                  <div className="absolute -top-2 -right-2 bg-white rounded-full p-1.5 shadow-lg border border-neutral-100">
+                                     <Trophy className={`w-3.5 h-3.5 ${
+                                       student.rank === 1 ? 'text-amber-500' : 
+                                       student.rank === 2 ? 'text-slate-400' : 
+                                       'text-orange-400'
+                                     }`} />
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="font-black text-muted-foreground text-lg tabular-nums">{student.rank}</span>
+                              )}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-8">
-                          <div className="space-y-0.5">
-                            <span className="text-sm font-bold text-slate-200 block">{student.district}</span>
-                            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.1em]">{student.province} Province</span>
-                          </div>
-                        </td>
-                        <AnimatePresence mode="popLayout">
-                          {toggles.iq && (
-                            <motion.td 
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              className="px-8 py-8"
-                            >
-                              <div className="px-4 py-2 rounded-xl bg-blue-500/5 border border-blue-500/10 inline-block">
-                                <span className="text-lg font-black text-blue-400">{student.iq_score}</span>
-                              </div>
-                            </motion.td>
-                          )}
-                          {toggles.gk && (
-                            <motion.td 
-                              initial={{ opacity: 0, scale: 0.8 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.8 }}
-                              className="px-8 py-8"
-                            >
-                              <div className="px-4 py-2 rounded-xl bg-indigo-500/5 border border-indigo-500/10 inline-block">
-                                <span className="text-lg font-black text-indigo-400">{student.gk_score}</span>
-                              </div>
-                            </motion.td>
-                          )}
-                        </AnimatePresence>
-                        <td className="px-8 py-8 text-right">
-                          <div className="flex flex-col items-end">
-                            <span className="text-3xl font-black text-white group-hover:scale-110 transition-transform duration-500 origin-right">
-                              {(student.iq_score || 0) + (student.gk_score || 0)}
+                          </TableCell>
+                          <TableCell>
+                            <p className="font-black text-foreground text-lg tracking-tight group-hover:text-primary transition-colors">
+                              {student.name}
+                            </p>
+                            {rankingMode === 'general' && (
+                              <span className={`inline-block ml-2 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter ${student.category === 'limited' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {student.category}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-0.5">
+                              <p className="text-xs font-bold text-foreground">{student.district}</p>
+                              <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 tracking-wider font-mono">{student.province}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right pr-12">
+                            <span className={`inline-block py-2 px-6 rounded-2xl font-black text-2xl tabular-nums shadow-sm transition-all ${
+                              student.rank === 1 ? 'bg-amber-500 text-white scale-110 shadow-amber-200' : 
+                              student.rank === 2 ? 'bg-slate-400 text-white scale-105 shadow-slate-200' : 
+                              student.rank === 3 ? 'bg-orange-400 text-white scale-105 shadow-orange-200' : 
+                              'bg-neutral-100 text-foreground group-hover:bg-primary/10'
+                            }`}>
+                              {activeTab === "iq_ranking" ? student.iq_marks : 
+                               activeTab === "gk_ranking" ? student.gk_marks : 
+                               student.total_marks}
                             </span>
-                            <div className="w-12 h-1 bg-gradient-to-r from-transparent to-blue-500/30 mt-1 rounded-full" />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                {/* Mobile View Cards */}
+                <div className="md:hidden divide-y divide-neutral-100">
+                  {rankedData.map((student, index) => (
+                    <div 
+                      key={index} 
+                      className={`p-5 flex items-center gap-5 transition-colors ${
+                        student.rank === 1 ? 'bg-amber-50/30' : 
+                        student.rank === 2 ? 'bg-slate-50/30' : 
+                        student.rank === 3 ? 'bg-orange-50/30' : 
+                        'active:bg-neutral-50'
+                      }`}
+                    >
+                        <div className="flex-shrink-0 w-14 text-center">
+                          {student.rank <= 3 ? (
+                            <div className={`
+                              relative w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-base shadow-lg
+                              ${student.rank === 1 ? 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-100' : ''}
+                              ${student.rank === 2 ? 'bg-gradient-to-br from-slate-300 to-slate-500 shadow-slate-100' : ''}
+                              ${student.rank === 3 ? 'bg-gradient-to-br from-orange-300 to-orange-500 shadow-orange-100' : ''}
+                            `}>
+                               #{student.rank}
+                            </div>
+                          ) : (
+                            <span className="font-black text-xl text-muted-foreground tabular-nums">{student.rank}</span>
+                          )}
+                        </div>
+                        
+                        <div className="flex-grow min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-black text-base text-foreground truncate">{student.name}</p>
+                            {rankingMode === 'general' && (
+                              <span className={`flex-shrink-0 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter ${student.category === 'limited' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
+                                {student.category}
+                              </span>
+                            )}
                           </div>
-                        </td>
-                      </motion.tr>
-                    ))
-                  ) : null}
-                </AnimatePresence>
-              </tbody>
-            </table>
-          )}
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <MapPin className="w-3 h-3 text-primary opacity-50" />
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">
+                              {student.district} <span className="opacity-40 mx-1">/</span> {student.province}
+                            </p>
+                          </div>
+                        </div>
 
-          {/* Empty Results Illustration */}
-          {!loading && filteredData.length === 0 && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="py-24 flex flex-col items-center justify-center text-center space-y-6"
-            >
-              <div className="relative">
-                <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full" />
-                <div className="relative w-24 h-24 rounded-3xl bg-slate-900 border border-white/5 flex items-center justify-center">
-                  <Search className="w-10 h-10 text-slate-500" />
+                        <div className="flex-shrink-0">
+                          <div className={`px-4 py-2 rounded-xl font-black text-lg tabular-nums shadow-sm ${
+                            student.rank === 1 ? 'bg-amber-500 text-white' : 
+                            student.rank === 2 ? 'bg-slate-400 text-white' : 
+                            student.rank === 3 ? 'bg-orange-400 text-white' : 
+                            'bg-neutral-100 text-foreground'
+                          }`}>
+                            {activeTab === "iq_ranking" ? student.iq_marks : 
+                             activeTab === "gk_ranking" ? student.gk_marks : 
+                             student.total_marks}
+                          </div>
+                        </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">No results found</h3>
-                <p className="text-slate-500 max-w-xs">We couldn't find any candidates matching your current filters or search criteria.</p>
-              </div>
-              <button 
-                onClick={() => {
-                  setFilters({ province: "Province", district: "District", subject: "Mathematics" });
-                  setSearch("");
-                }}
-                className="px-6 py-2.5 rounded-full bg-white/5 border border-white/10 text-sm font-bold hover:bg-white/10 transition-all"
-              >
-                Clear all filters
-              </button>
-            </motion.div>
-          )}
-          
-          {/* Table Footer */}
-          {!loading && (
-            <div className="px-8 py-6 bg-slate-950/40 border-t border-white/[0.03] flex flex-col sm:flex-row items-center justify-between gap-6">
-              <div className="flex items-center gap-6">
-                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-                  Total Results: <span className="text-white ml-1">{filteredData.length}</span>
-                </div>
-                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest hidden md:flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                  Synced with Supabase Real-time
-                </div>
-              </div>
-              
-              {/* Device Visibility Toggle (Visual Indicator) */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/[0.03] border border-white/5">
-                <Monitor className={clsx("w-3.5 h-3.5 transition-colors", !isLandscape ? "text-blue-400" : "text-slate-600")} />
-                <div className="w-[1px] h-3 bg-white/10 mx-1" />
-                <Smartphone className={clsx("w-3.5 h-3.5 transition-colors", isLandscape ? "text-blue-400" : "text-slate-600")} />
-              </div>
-            </div>
-          )}
-        </motion.div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.05);
-          border-radius: 10px;
-          border: 2px solid #070b14;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(59, 130, 246, 0.3);
-        }
-      `}</style>
     </div>
   );
 }
