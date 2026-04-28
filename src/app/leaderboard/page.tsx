@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Trophy, Medal, Star, Filter, MapPin, Search as SearchIcon } from "lucide-react";
 import { SubjectAutocomplete } from "@/components/SubjectAutocomplete";
+import clsx from "clsx";
 
 export default function Leaderboard() {
   const [activeTab, setActiveTab] = useState("island");
