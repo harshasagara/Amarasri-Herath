@@ -41,7 +41,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
 })
 SelectTrigger.displayName = "SelectTrigger"
 
-const SelectValue = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(({ className, placeholder, ...props }, ref) => {
+const SelectValue = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement> & { placeholder?: string }>(({ className, placeholder, ...props }, ref) => {
   const { value } = React.useContext(SelectContext)
   return (
     <span ref={ref} className={cn("pointer-events-none", className)} {...props}>
