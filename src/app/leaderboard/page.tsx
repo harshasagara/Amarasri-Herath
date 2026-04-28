@@ -33,14 +33,12 @@ export default function Leaderboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    let sortBy: "total_marks" | "iq_marks" | "gk_marks" = "total_marks";
     let filterProvince = undefined;
     let filterDistrict = undefined;
 
     if (activeTab.includes("province")) filterProvince = selectedProvince || PROVINCES[0];
     if (activeTab.includes("district")) filterDistrict = selectedDistrict || DISTRICTS[0];
-    if (activeTab === "iq_ranking") sortBy = "iq_marks";
-    if (activeTab === "gk_ranking") sortBy = "gk_marks";
+    const sortBy = activeTab === "iq_ranking" ? "iq_marks" : (activeTab === "gk_ranking" ? "gk_marks" : "total_marks");
 
     const response = await getAdminRankings({
       subject: (selectedSubject && selectedSubject !== "ALL_SUBJECTS") ? selectedSubject : undefined,
@@ -146,7 +144,7 @@ export default function Leaderboard() {
 
       <div className="space-y-5">
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
+        <div className="w-full max-w-4xl mx-auto mb-10 p-1.5 rounded-2xl bg-white/[0.12] border border-white/30 backdrop-blur-md flex items-center justify-between gap-1 overflow-x-auto no-scrollbar shadow-2xl shadow-black/40">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.v;
@@ -155,8 +153,8 @@ export default function Leaderboard() {
                 key={tab.v}
                 onClick={() => setActiveTab(tab.v)}
                 className={cn(
-                  "relative flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all min-w-[70px]",
-                  isActive ? "text-white" : "text-white/30 hover:text-white/60"
+                  "relative flex-1 flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all min-w-[80px]",
+                  isActive ? "text-white" : "text-white/85 hover:text-white"
                 )}
               >
                 {isActive && (
@@ -279,10 +277,10 @@ export default function Leaderboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b border-white/10 hover:bg-transparent">
-                      <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-5 text-white/30">Rank</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[9px] text-white/30">Candidate</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[9px] text-white/30">Location</TableHead>
-                      <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-10 text-white/30">Score</TableHead>
+                      <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-5 text-white/50">Rank</TableHead>
+                      <TableHead className="font-black uppercase tracking-widest text-[9px] text-white/50">Candidate</TableHead>
+                      <TableHead className="font-black uppercase tracking-widest text-[9px] text-white/50">Location</TableHead>
+                      <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-10 text-white/50">Score</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -308,11 +306,11 @@ export default function Leaderboard() {
                                 {student.rank <= 3 ? (
                                   <div className={cn(
                                     "relative w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-sm shadow-xl bg-gradient-to-br",
-                                    rs.bg, rs.shadow
+                                    RANK_STYLES[student.rank - 1].bg, RANK_STYLES[student.rank - 1].shadow
                                   )}>
                                     <span>#{student.rank}</span>
                                     <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-950 border border-white/10 flex items-center justify-center">
-                                      <Trophy className={cn("w-2.5 h-2.5", rs.text)} />
+                                      <Trophy className={cn("w-2.5 h-2.5", RANK_STYLES[student.rank - 1].text)} />
                                     </div>
                                   </div>
                                 ) : (
@@ -390,7 +388,7 @@ export default function Leaderboard() {
                         {student.rank <= 3 ? (
                           <div className={cn(
                             "w-11 h-11 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-lg bg-gradient-to-br",
-                            rs.bg
+                            RANK_STYLES[student.rank - 1].bg
                           )}>
                             #{student.rank}
                           </div>
