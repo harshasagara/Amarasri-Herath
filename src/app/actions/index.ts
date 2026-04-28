@@ -19,7 +19,7 @@ export async function getAdminRankings(params: {
     if (params.subject) query = query.eq('subject', params.subject);
     if (params.province) query = query.eq('province', params.province);
     if (params.district) query = query.eq('district', params.district);
-    if (params.category) query = query.eq('category', params.category);
+    if (params.category && params.category !== "ALL") query = query.eq('category', params.category);
 
     const { data, error } = await query.order(params.sortBy || 'total_marks', { ascending: false });
 

@@ -144,22 +144,38 @@ function EntryExamContent() {
         let gkMarks = type === "gk" ? calculatedScore : (existing?.gk_marks || 0);
         let totalMarks = iqMarks + gkMarks;
 
-        // 2. Upsert the merged data
-        const { error: upsertError } = await supabase
-          .from('students_results')
-          .upsert({
-            nic: user.nic,
-            name: user.name,
-            province: (user as any).province || "Unknown",
-            district: (user as any).district || "Unknown",
-            subject: type.toUpperCase(),
-            category: (user as any).category || "Open",
-            iq_marks: iqMarks,
-            gk_marks: gkMarks,
-            total_marks: totalMarks
-          }, { onConflict: 'nic' });
-
-        if (upsertError) throw upsertError;
+        // 2. Save data without relying on upsert unique constraint
+        if (existing) {
+          const { error: updateError } = await supabase
+            .from('students_results')
+            .update({
+              name: user.name,
+              province: (user as any).province || "Unknown",
+              district: (user as any).district || "Unknown",
+              subject: type.toUpperCase(),
+              category: (user as any).category || "Open",
+              iq_marks: iqMarks,
+              gk_marks: gkMarks,
+              total_marks: totalMarks
+            })
+            .eq('nic', user.nic);
+          if (updateError) throw updateError;
+        } else {
+          const { error: insertError } = await supabase
+            .from('students_results')
+            .insert({
+              nic: user.nic,
+              name: user.name,
+              province: (user as any).province || "Unknown",
+              district: (user as any).district || "Unknown",
+              subject: type.toUpperCase(),
+              category: (user as any).category || "Open",
+              iq_marks: iqMarks,
+              gk_marks: gkMarks,
+              total_marks: totalMarks
+            });
+          if (insertError) throw insertError;
+        }
       } catch (err) {
         console.error("Supabase Save Error:", err);
       }
@@ -389,7 +405,7 @@ function EntryExamContent() {
             return (
               <div key={qIndex} className="flex items-center gap-4 py-2 border-b border-slate-800/50 last:border-0">
                 <div className="flex items-center gap-4">
-                  <span className={clsx("font-black text-lg w-6", type === "iq" ? "text-slate-400" : "text-slate-900")}>{qIndex + 1}</span>
+                  <span className={clsx("font-black text-lg w-6", "text-slate-400")}>{qIndex + 1}</span>
                 </div>
                 {submitted && (
                   <div className="w-4 flex justify-center">
@@ -406,10 +422,10 @@ function EntryExamContent() {
                       <label key={optIndex} className={clsx(
                         "relative flex items-center justify-center w-8 h-8 rounded-full border-2 cursor-pointer transition-all text-xs font-bold",
                         submitted ? "cursor-default" : "hover:border-slate-500",
-                        isSelected && !submitted ? (type === "iq" ? "bg-primary border-primary text-white" : "bg-secondary border-secondary text-slate-900") : 
+                        isSelected && !submitted ? (type === "iq" ? "bg-primary border-primary text-white" : "bg-white border-white text-slate-900") : 
                         submitted && isCorrectOption ? "bg-emerald-500 border-emerald-500 text-white" :
                         submitted && isSelected && !isCorrectOption ? "bg-rose-500 border-rose-500 text-white" :
-                        type === "iq" ? "border-slate-700 text-slate-500 bg-transparent" : "border-slate-300 text-slate-900 bg-slate-50"
+                        "border-slate-700 text-slate-500 bg-transparent"
                       )}>
                         <input type="radio" name={`q-${qIndex}`} checked={isSelected} onChange={() => handleSelect(qIndex, optIndex)} disabled={submitted || submissionsDisabled} className="hidden" />
                         <span>{optText}</span>

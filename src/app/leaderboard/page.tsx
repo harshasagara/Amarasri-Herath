@@ -23,7 +23,7 @@ export default function Leaderboard() {
   const [selectedProvince, setSelectedProvince] = useState<string>("");
   const [selectedDistrict, setSelectedDistrict] = useState<string>("");
   const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Open");
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [rankingMode, setRankingMode] = useState<string>("general");
   const [viewRankings, setViewRankings] = useState<boolean>(true);
 
@@ -221,7 +221,7 @@ export default function Leaderboard() {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Candidate Type / කාණ්ඩය</p>
             </div>
             <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 h-12 md:h-14">
-              {["Open", "limited"].map((cat) => (
+              {["ALL", "Open", "limited"].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
@@ -232,7 +232,7 @@ export default function Leaderboard() {
                       : "text-slate-400 hover:text-slate-600"
                   )}
                 >
-                  {cat}
+                  {cat === "ALL" ? "All" : cat}
                 </button>
               ))}
             </div>
