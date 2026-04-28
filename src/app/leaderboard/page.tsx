@@ -190,7 +190,7 @@ export default function Leaderboard() {
                 value={needsProvinceFilter ? selectedProvince : selectedDistrict} 
                 onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
               >
-                <SelectTrigger className="h-12 md:h-14 rounded-xl border-2 border-input bg-background font-bold px-4 text-slate-900">
+                <SelectTrigger className="h-12 md:h-14 rounded-xl border-2 border-slate-800 bg-slate-950 font-bold px-4 text-white">
                   <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : "Choose District"} />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">

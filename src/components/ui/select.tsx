@@ -57,7 +57,7 @@ const SelectContent = ({ children, className }: any) => {
   return (
     <>
       <div className="fixed inset-0 z-50" onClick={() => setOpen?.(false)} />
-      <div className={cn("absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95", className)}>
+      <div className={cn("absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-slate-800 bg-slate-950 text-white shadow-2xl animate-in fade-in-0 zoom-in-95", className)}>
         <div className="p-1">{children}</div>
       </div>
     </>
@@ -75,8 +75,8 @@ const SelectItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
         setOpen?.(false)
       }}
       className={cn(
-        "relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        isSelected && "bg-accent text-accent-foreground",
+        "relative flex w-full cursor-default select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none hover:bg-white/10 text-slate-300 transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+        isSelected && "bg-primary/20 text-primary font-bold",
         className
       )}
       {...props}
