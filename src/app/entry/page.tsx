@@ -405,7 +405,7 @@ function EntryExamContent() {
                       <label key={optIndex} className={clsx(
                         "relative flex items-center justify-center w-8 h-8 rounded-full border-2 cursor-pointer transition-all text-xs font-bold",
                         submitted ? "cursor-default" : "hover:border-slate-500",
-                        isSelected && !submitted ? (type === "iq" ? "bg-primary border-primary text-white" : "bg-secondary border-secondary text-white") : 
+                        isSelected && !submitted ? (type === "iq" ? "bg-primary border-primary text-white" : "bg-secondary border-secondary text-slate-900") : 
                         submitted && isCorrectOption ? "bg-emerald-500 border-emerald-500 text-white" :
                         submitted && isSelected && !isCorrectOption ? "bg-rose-500 border-rose-500 text-white" :
                         "border-slate-700 text-slate-500 bg-transparent"
@@ -425,7 +425,7 @@ function EntryExamContent() {
       {!submitted && (
         <div className="flex justify-center mt-8 flex-col items-center gap-4">
           {submissionsDisabled && <div className="text-rose-400 font-bold text-sm bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20">Submissions closed.</div>}
-          <button onClick={handleSubmit} disabled={submissionsDisabled} className={clsx("px-12 py-4 rounded-xl text-white font-bold text-lg flex items-center gap-3 transition-all disabled:opacity-50", type === "iq" ? "bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" : "bg-secondary hover:bg-secondary/90 shadow-lg shadow-secondary/20")}>
+          <button onClick={handleSubmit} disabled={submissionsDisabled} className={clsx("px-12 py-4 rounded-xl font-bold text-lg flex items-center gap-3 transition-all disabled:opacity-50", type === "iq" ? "bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20" : "bg-secondary text-slate-900 hover:bg-secondary/90 shadow-lg shadow-secondary/20")}>
             <Send className="w-5 h-5" /> Submit {type.toUpperCase()} Answers
           </button>
         </div>

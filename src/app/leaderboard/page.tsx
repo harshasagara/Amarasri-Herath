@@ -154,7 +154,7 @@ export default function Leaderboard() {
             ].map((tab) => (
               <TabsTrigger 
                 key={tab.v} value={tab.v} 
-                className="flex-1 py-2.5 md:py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white transition-all min-w-[70px]"
+                className="flex-1 py-2.5 md:py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white text-slate-500 hover:text-slate-900 transition-all min-w-[70px]"
               >
                 {tab.l}
               </TabsTrigger>
@@ -167,7 +167,7 @@ export default function Leaderboard() {
           <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5">
             <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
               <Star className="w-3.5 h-3.5" />
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Select Subject</p>
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">Select Subject</p>
             </div>
             <SubjectAutocomplete 
               defaultValue={selectedSubject} 
@@ -182,7 +182,7 @@ export default function Leaderboard() {
             <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5 animate-in slide-in-from-right-4">
               <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
                 <MapPin className="w-3.5 h-3.5" />
-                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">
                   {needsProvinceFilter ? "Province Filter" : "District Filter"}
                 </p>
               </div>
@@ -190,7 +190,7 @@ export default function Leaderboard() {
                 value={needsProvinceFilter ? selectedProvince : selectedDistrict} 
                 onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
               >
-                <SelectTrigger className="h-12 md:h-14 rounded-xl border-2 border-input bg-background font-bold px-4">
+                <SelectTrigger className="h-12 md:h-14 rounded-xl border-2 border-input bg-background font-bold px-4 text-slate-900">
                   <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : "Choose District"} />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl">
@@ -205,7 +205,7 @@ export default function Leaderboard() {
           <div className="flex-1 bg-white p-5 md:p-6 rounded-[2rem] shadow-lg border border-primary/5 animate-in slide-in-from-right-4">
             <div className="flex items-center gap-2 mb-3 md:mb-4 text-primary">
               <Filter className="w-3.5 h-3.5" />
-              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest">Candidate Type / කාණ්ඩය</p>
+              <p className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-slate-400">Candidate Type / කාණ්ඩය</p>
             </div>
             <div className="flex bg-neutral-100 p-1.5 rounded-2xl border border-neutral-200">
               {["Open", "limited"].map((cat) => (
@@ -248,10 +248,10 @@ export default function Leaderboard() {
                   <Table>
                     <TableHeader className="bg-neutral-50">
                       <TableRow className="border-b-0">
-                        <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-6">Rank</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px]">Candidate</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px]">Location</TableHead>
-                        <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-12">Total Score</TableHead>
+                        <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-6 text-slate-400">Rank</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-slate-400">Candidate</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-slate-400">Location</TableHead>
+                        <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-12 text-slate-400">Total Score</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -289,7 +289,7 @@ export default function Leaderboard() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <p className="font-black text-foreground text-lg tracking-tight group-hover:text-primary transition-colors">
+                            <p className="font-black text-slate-900 text-lg tracking-tight group-hover:text-primary transition-colors">
                               {student.name}
                             </p>
                             {rankingMode === 'general' && (
@@ -300,7 +300,7 @@ export default function Leaderboard() {
                           </TableCell>
                           <TableCell>
                             <div className="space-y-0.5">
-                              <p className="text-xs font-bold text-foreground">{student.district}</p>
+                              <p className="text-xs font-bold text-slate-900">{student.district}</p>
                               <p className="text-[9px] font-bold text-muted-foreground uppercase opacity-60 tracking-wider font-mono">{student.province}</p>
                             </div>
                           </TableCell>
@@ -351,7 +351,7 @@ export default function Leaderboard() {
                         
                         <div className="flex-grow min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-black text-base text-foreground truncate">{student.name}</p>
+                            <p className="font-black text-base text-slate-900 truncate">{student.name}</p>
                             {rankingMode === 'general' && (
                               <span className={`flex-shrink-0 px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-tighter ${student.category === 'limited' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
                                 {student.category}
