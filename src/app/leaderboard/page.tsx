@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/lib/supabase/client";
 import { getAdminRankings, getSystemConfig } from "@/app/actions";
 import { StudentResult } from "@/types";
@@ -165,8 +166,15 @@ export default function Leaderboard() {
             ].map((tab) => (
               <TabsTrigger
                 key={tab.v} value={tab.v}
-                className="flex-1 py-2.5 md:py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-black text-slate-500 hover:text-slate-900 transition-all min-w-[70px]"
+                className="relative flex-1 py-2.5 md:py-3 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest transition-all min-w-[70px] z-10 data-[state=active]:text-white text-slate-500"
               >
+                {activeTab === tab.v && (
+                  <motion.div
+                    layoutId="activeTab"
+                    className="absolute inset-0 bg-primary rounded-xl z-[-1]"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
                 {tab.l}
               </TabsTrigger>
             ))}
@@ -179,7 +187,7 @@ export default function Leaderboard() {
           <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-xl border border-slate-100 transition-all hover:shadow-2xl hover:shadow-primary/5">
             <div className="flex items-center gap-2 mb-4 text-primary">
               <Star className="w-3.5 h-3.5 fill-current" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Select Subject</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Select Subject</p>
             </div>
             <SubjectAutocomplete
               defaultValue={selectedSubject}
@@ -197,7 +205,7 @@ export default function Leaderboard() {
           )}>
             <div className="flex items-center gap-2 mb-4 text-primary">
               <MapPin className="w-3.5 h-3.5 fill-current" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">
                 {needsProvinceFilter ? "Province Filter" : needsDistrictFilter ? "District Filter" : "Location Filter"}
               </p>
             </div>
@@ -221,7 +229,7 @@ export default function Leaderboard() {
           <div className="bg-white p-5 md:p-6 rounded-[2rem] shadow-xl border border-slate-100 transition-all hover:shadow-2xl hover:shadow-primary/5">
             <div className="flex items-center gap-2 mb-4 text-primary">
               <Filter className="w-3.5 h-3.5 fill-current" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Candidate Type / කාණ්ඩය</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">Candidate Type / කාණ්ඩය</p>
             </div>
             <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-100 h-12 md:h-14">
               {["Open", "limited"].map((cat) => (
@@ -265,10 +273,10 @@ export default function Leaderboard() {
                   <Table>
                     <TableHeader className="bg-neutral-50">
                       <TableRow className="border-b-0">
-                        <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-6 text-slate-400">Rank</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-slate-400">Candidate</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-slate-400">Location</TableHead>
-                        <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-12 text-slate-400">Total Score</TableHead>
+                        <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-6 text-slate-900">Rank</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-slate-900">Candidate</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-slate-900">Location</TableHead>
+                        <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-12 text-slate-900">Total Score</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>

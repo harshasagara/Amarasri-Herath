@@ -388,14 +388,14 @@ function EntryExamContent() {
 
             return (
               <div key={qIndex} className="flex items-center gap-4 py-2 border-b border-slate-800/50 last:border-0">
-                <div className="flex items-center gap-2 w-16">
-                  <span className="font-mono font-bold text-slate-500 text-sm w-6 text-right">{qIndex + 1}.</span>
-                  {submitted && (
-                    <div className="w-4 flex justify-center">
-                      {isCorrect ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-rose-500" />}
-                    </div>
-                  )}
+                <div className="flex items-center gap-4">
+                  <span className={clsx("font-black text-lg w-6", type === "iq" ? "text-slate-400" : "text-slate-900")}>{qIndex + 1}</span>
                 </div>
+                {submitted && (
+                  <div className="w-4 flex justify-center">
+                    {isCorrect ? <CheckCircle className="w-4 h-4 text-emerald-500" /> : <XCircle className="w-4 h-4 text-rose-500" />}
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-3">
                   {OPTIONS.map((optText, optIndex) => {
@@ -409,7 +409,7 @@ function EntryExamContent() {
                         isSelected && !submitted ? (type === "iq" ? "bg-primary border-primary text-white" : "bg-secondary border-secondary text-slate-900") : 
                         submitted && isCorrectOption ? "bg-emerald-500 border-emerald-500 text-white" :
                         submitted && isSelected && !isCorrectOption ? "bg-rose-500 border-rose-500 text-white" :
-                        "border-slate-700 text-slate-500 bg-transparent"
+                        type === "iq" ? "border-slate-700 text-slate-500 bg-transparent" : "border-slate-300 text-slate-900 bg-slate-50"
                       )}>
                         <input type="radio" name={`q-${qIndex}`} checked={isSelected} onChange={() => handleSelect(qIndex, optIndex)} disabled={submitted || submissionsDisabled} className="hidden" />
                         <span>{optText}</span>
