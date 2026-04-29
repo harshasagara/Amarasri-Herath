@@ -7,7 +7,7 @@ import { getAdminRankings, getSystemConfig } from "@/app/actions";
 import { StudentResult } from "@/types";
 import { PROVINCES, DISTRICTS } from "@/lib/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Trophy, MapPin, Globe, Building2, Brain, BookOpen, SlidersHorizontal } from "lucide-react";
+import { Loader2, Trophy, MapPin, Globe, Building2, Brain, BookOpen, SlidersHorizontal, Search as SearchIcon } from "lucide-react";
 import { SubjectAutocomplete } from "@/components/SubjectAutocomplete";
 import { cn } from "@/lib/utils";
 
