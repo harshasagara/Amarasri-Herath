@@ -6,7 +6,7 @@ import { Lock, LogOut, BrainCircuit, Globe, Trophy, Brain, User, ArrowRight, Map
 import Link from "next/link";
 import clsx from "clsx";
 import { PROVINCES, PROVINCE_DISTRICTS } from "@/lib/regions";
-import { getStudentByNIC, upsertStudent, getStudentHistory } from "@/app/actions";
+import { getStudentByNIC, upsertStudent, getStudentHistory, getSystemConfig } from "@/app/actions";
 import { supabase } from "@/lib/supabase/client";
 
 // ── AI Insight Card ───────────────────────────────────────────────────────────
