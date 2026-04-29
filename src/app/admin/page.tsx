@@ -58,6 +58,8 @@ export default function AdminPage() {
       setLbEnabled(config.view_rankings);
       setIqPaperName(config.iq_paper_name || null);
       setGkPaperName(config.gk_paper_name || null);
+      if (config.iq_answer_key) setAnswerKeyIQ(config.iq_answer_key);
+      if (config.gk_answer_key) setAnswerKeyGK(config.gk_answer_key);
     };
     init();
 
@@ -98,12 +100,13 @@ export default function AdminPage() {
 
   const handleSave = async () => {
     localStorage.setItem("adminExamName", examName);
-    localStorage.setItem("adminAnswerKeyIQ", JSON.stringify(answerKeyIQ));
-    localStorage.setItem("adminAnswerKeyGK", JSON.stringify(answerKeyGK));
     
+    // Push everything to cloud config
     await updateSystemConfig({
       iq_paper_name: iqPaperName || undefined,
-      gk_paper_name: gkPaperName || undefined
+      gk_paper_name: gkPaperName || undefined,
+      iq_answer_key: answerKeyIQ,
+      gk_answer_key: answerKeyGK
     });
 
     setSaved(true);

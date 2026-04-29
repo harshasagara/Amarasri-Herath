@@ -20,4 +20,6 @@ export interface SystemConfig {
   iq_paper_name?: string;
   gk_paper_url?: string;
   gk_paper_name?: string;
+  iq_answer_key?: (number | null)[];
+  gk_answer_key?: (number | null)[];
 }

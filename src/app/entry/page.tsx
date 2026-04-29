@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import clsx from "clsx";
 import { supabase } from "@/lib/supabase/client";
-import { addExamHistory } from "@/app/actions";
+import { addExamHistory, getSystemConfig } from "@/app/actions";
 
 const OPTIONS = ["A", "B", "C", "D"];
 
@@ -43,7 +43,6 @@ function EntryExamContent() {
     
     const checkSubmission = async () => {
       setLoading(true);
-      // 1. Try local storage first for speed
       const localSubmitted = localStorage.getItem(`submitted${type.toUpperCase()}_${user.nic}`) === "true";
       if (localSubmitted) {
         const localScore = JSON.parse(localStorage.getItem(`studentScores_${user.nic}`) || "{}")[type] || 0;
@@ -53,9 +52,8 @@ function EntryExamContent() {
         setSubmitted(true);
       }
 
-      // 2. Sync with Supabase
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from('students_results')
           .select('iq_marks, gk_marks')
           .eq('nic', user.nic)
@@ -66,7 +64,6 @@ function EntryExamContent() {
           if (remoteScore !== null && remoteScore !== undefined) {
             setSubmitted(true);
             setScore(remoteScore);
-            // Sync local storage if remote has it but local doesn't
             localStorage.setItem(`submitted${type.toUpperCase()}_${user.nic}`, "true");
             const scores = JSON.parse(localStorage.getItem(`studentScores_${user.nic}`) || "{}");
             scores[type] = remoteScore;
@@ -81,22 +78,23 @@ function EntryExamContent() {
     };
     checkSubmission();
 
-    const disabled = localStorage.getItem("submissionsDisabled") === "true";
-    setSubmissionsDisabled(disabled);
+    const loadCloudData = async () => {
+      const config = await getSystemConfig();
+      if (type === "iq") {
+        setPaperName(config.iq_paper_name || null);
+        setPaperData(config.iq_paper_url || null);
+        if (config.iq_answer_key) setCorrectAnswers(config.iq_answer_key as number[]);
+      } else {
+        setPaperName(config.gk_paper_name || null);
+        setPaperData(config.gk_paper_url || null);
+        if (config.gk_answer_key) setCorrectAnswers(config.gk_answer_key as number[]);
+      }
+    };
+    loadCloudData();
 
-    const paper = localStorage.getItem(`adminPaper${type.toUpperCase()}`);
-    setPaperName(paper);
-    const pdata = localStorage.getItem(`adminPaperData${type.toUpperCase()}`);
-    setPaperData(pdata);
-
+    setSubmissionsDisabled(localStorage.getItem("submissionsDisabled") === "true");
     window.scrollTo(0, 0);
   }, [type, user]);
-
-  useEffect(() => {
-    const keyName = type === "iq" ? "adminAnswerKeyIQ" : "adminAnswerKeyGK";
-    const savedKey = localStorage.getItem(keyName);
-    if (savedKey) setCorrectAnswers(JSON.parse(savedKey));
-  }, [type]);
 
   useEffect(() => {
     if (redirectCountdown === null) return;
@@ -130,7 +128,6 @@ function EntryExamContent() {
       if (ans === correctAnswers[i]) calculatedScore += 2;
     });
 
-    // 1. Save to local storage immediately
     localStorage.setItem(`submitted${type.toUpperCase()}_${user.nic}`, "true");
     localStorage.setItem(`studentAnswers${type.toUpperCase()}_${user.nic}`, JSON.stringify(answers));
     const scores = JSON.parse(localStorage.getItem(`studentScores_${user.nic}`) || "{}");
@@ -140,7 +137,6 @@ function EntryExamContent() {
     setScore(calculatedScore);
     setSubmitted(true);
     
-    // 2. Save to Supabase
     try {
       const { data: existing } = await supabase
         .from('students_results')
@@ -184,7 +180,6 @@ function EntryExamContent() {
 
     } catch (err) {
       console.error("Submission Error:", err);
-      alert("Error syncing with database. Your results are saved locally, but may not appear on the leaderboard yet.");
     } finally {
       setSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -234,7 +229,6 @@ function EntryExamContent() {
             <p className="text-slate-500 mt-1 font-bold text-xs uppercase tracking-widest">{user?.name} · {user?.nic}</p>
           </div>
         </div>
-
         {paperName && (
           <button onClick={() => setViewingPaper(true)} className="px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all flex items-center gap-2">
             <Eye className="w-4 h-4" /> View Paper
@@ -248,7 +242,6 @@ function EntryExamContent() {
           <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-6" />
           <h2 className="text-3xl font-black text-white tracking-tight mb-2">Assessment Completed</h2>
           <p className="text-slate-500 font-medium mb-8">Your results are recorded and synced with the cloud database.</p>
-          
           <div className="flex items-center justify-center gap-12">
             <div className="flex flex-col items-center">
               <span className="text-6xl font-black text-emerald-400 tracking-tighter">{score}</span>
@@ -260,7 +253,6 @@ function EntryExamContent() {
               <span className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-2">Questions</span>
             </div>
           </div>
-          
           <div className="mt-12 flex flex-col items-center gap-3">
             <div className="w-6 h-6 rounded-full border-2 border-t-white border-r-white border-b-transparent border-l-transparent animate-spin mb-1" />
             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">
@@ -281,7 +273,6 @@ function EntryExamContent() {
               <div className={clsx("h-full transition-all duration-500", type === "iq" ? "bg-cyan-500" : "bg-fuchsia-500")} style={{ width: `${(answeredCount / 50) * 100}%` }} />
             </div>
           </div>
-
           <div className="glass-panel p-8 md:p-12">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-6">
               {Array.from({ length: 50 }).map((_, qIndex) => (
@@ -301,13 +292,8 @@ function EntryExamContent() {
                 </div>
               ))}
             </div>
-
             <div className="mt-12 flex justify-center">
-              <button 
-                onClick={handleSubmit} 
-                disabled={submitting}
-                className={clsx("px-12 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-2xl active:scale-[0.98] flex items-center gap-3", type === "iq" ? "bg-cyan-500 text-white hover:bg-cyan-400" : "bg-fuchsia-500 text-white hover:bg-fuchsia-400")}
-              >
+              <button onClick={handleSubmit} disabled={submitting} className={clsx("px-12 py-5 rounded-2xl font-black uppercase tracking-[0.2em] text-xs transition-all shadow-2xl active:scale-[0.98] flex items-center gap-3", type === "iq" ? "bg-cyan-500 text-white hover:bg-cyan-400" : "bg-fuchsia-500 text-white hover:bg-fuchsia-400")}>
                 {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-4 h-4" />}
                 Complete Assessment
               </button>
