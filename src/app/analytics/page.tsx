@@ -59,14 +59,16 @@ export default function AnalyticsPage() {
   return (
     <div className="flex flex-col gap-8 pb-10 px-4">
       {/* Header */}
-      <div>
-        <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20">
-            <BarChart2 className="w-6 h-6 text-cyan-400" />
-          </div>
-          Performance <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">Analytics</span>
-        </h1>
-        <p className="text-slate-500 mt-2 font-medium">Real-time breakdown of your academic progress synchronized across all devices.</p>
+      <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-cyan-500/10 flex items-center justify-center border border-cyan-500/20 shrink-0">
+          <BarChart2 className="w-6 h-6 md:w-7 md:h-7 text-cyan-400" />
+        </div>
+        <div>
+          <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight">
+            Performance <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400">Analytics</span>
+          </h1>
+          <p className="text-slate-500 mt-1 md:mt-2 font-medium text-xs md:text-base max-w-xl">Real-time breakdown of your academic progress synchronized across all devices.</p>
+        </div>
       </div>
 
       {/* Top Stats */}
@@ -109,7 +111,7 @@ export default function AnalyticsPage() {
               <p className="italic text-sm font-medium">Complete your first exam to see historical data.</p>
             </div>
           ) : (
-            <div className="h-64 flex items-end gap-3 justify-start px-2">
+            <div className="h-64 flex items-end gap-3 justify-start px-2 overflow-x-auto no-scrollbar pb-2">
               {history.slice(0, 8).reverse().map((d, i) => (
                 <div key={d.id || i} className="flex flex-col items-center gap-3 flex-1 group" style={{ maxWidth: 80 }}>
                   <div className="relative w-full flex justify-center items-end" style={{ height: 200 }}>

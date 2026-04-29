@@ -174,7 +174,7 @@ export default function Leaderboard() {
         {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-30">
           {/* Subject */}
-          <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-cyan-500/30 transition-all">
+          <div className="relative z-30 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-cyan-500/30 transition-all">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-5 h-5 rounded-lg bg-cyan-500/20 flex items-center justify-center">
                 <BookOpen className="w-3 h-3 text-cyan-400" />
@@ -192,7 +192,7 @@ export default function Leaderboard() {
 
           {/* Location */}
           <div className={cn(
-            "rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 transition-all",
+            "relative z-20 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 transition-all",
             (needsProvinceFilter || needsDistrictFilter) ? "hover:border-violet-500/30" : "opacity-30 pointer-events-none"
           )}>
             <div className="flex items-center gap-2 mb-3">
@@ -220,7 +220,7 @@ export default function Leaderboard() {
           </div>
 
           {/* Category */}
-          <div className="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-emerald-500/30 transition-all">
+          <div className="relative z-10 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-emerald-500/30 transition-all">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-5 h-5 rounded-lg bg-emerald-500/20 flex items-center justify-center">
                 <SlidersHorizontal className="w-3 h-3 text-emerald-400" />
