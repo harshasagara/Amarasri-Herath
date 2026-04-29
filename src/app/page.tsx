@@ -118,6 +118,22 @@ export default function Dashboard() {
       setIsLoaded(true);
     };
     init();
+    const channel = supabase
+      .channel('system-config-updates')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'system_config' 
+      }, (payload) => {
+        if (payload.new) {
+          setConfig(payload.new);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const handleNICCheck = async (e: React.FormEvent) => {
