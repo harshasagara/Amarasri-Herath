@@ -16,4 +16,8 @@ export interface StudentResult {
 export interface SystemConfig {
   ranking_mode: 'general' | 'subject';
   view_rankings: boolean;
+  iq_paper_url?: string;
+  iq_paper_name?: string;
+  gk_paper_url?: string;
+  gk_paper_name?: string;
 }

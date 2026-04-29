@@ -125,7 +125,10 @@ export async function updateSystemConfig(config: Partial<SystemConfig>) {
   try {
     const { error } = await supabase
       .from('system_config')
-      .upsert({ id: 1, ...config });
+      .upsert({ 
+        id: 1, 
+        ...config 
+      }, { onConflict: 'id' });
 
     if (error) throw error;
     return { success: true };

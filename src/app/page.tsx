@@ -66,6 +66,7 @@ export default function Dashboard() {
   const [submissionsDisabled, setSubmissionsDisabled] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [config, setConfig] = useState<any>(null);
   const [scores, setScores] = useState<{ iq: number | null; gk: number | null }>({ iq: null, gk: null });
   const [submittedIQ, setSubmittedIQ] = useState(false);
   const [submittedGK, setSubmittedGK] = useState(false);
@@ -92,6 +93,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     const init = async () => {
+      const cfg = await getSystemConfig();
+      setConfig(cfg);
+      
       const savedUser = localStorage.getItem("studentUser");
       if (savedUser) {
         try {
@@ -365,10 +369,7 @@ export default function Dashboard() {
         </motion.div>
       )}
 
-      {/* AI Insight */}
-      {(submittedIQ || submittedGK) && <AIInsight iq={scores.iq} gk={scores.gk} />}
 
-      {/* Exam Cards */}
       <div className="w-full max-w-4xl px-4">
         {submissionsDisabled ? (
           <div className="flex flex-col items-center gap-8">

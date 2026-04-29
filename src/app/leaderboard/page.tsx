@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
@@ -7,10 +6,8 @@ import { supabase } from "@/lib/supabase/client";
 import { getAdminRankings, getSystemConfig } from "@/app/actions";
 import { StudentResult } from "@/types";
 import { PROVINCES, DISTRICTS } from "@/lib/constants";
-import { Tabs, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Loader2, Trophy, MapPin, Search as SearchIcon, Globe, Building2, Brain, BookOpen, SlidersHorizontal } from "lucide-react";
+import { Loader2, Trophy, MapPin, Globe, Building2, Brain, BookOpen, SlidersHorizontal } from "lucide-react";
 import { SubjectAutocomplete } from "@/components/SubjectAutocomplete";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +18,8 @@ const RANK_STYLES = [
 ];
 
 export default function Leaderboard() {
-  const [activeTab, setActiveTab] = useState("island");
+  const [activeScope, setActiveScope] = useState("island");
+  const [activeBasis, setActiveBasis] = useState("total");
   const [data, setData] = useState<StudentResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProvince, setSelectedProvince] = useState<string>("");
@@ -36,9 +34,10 @@ export default function Leaderboard() {
     let filterProvince = undefined;
     let filterDistrict = undefined;
 
-    if (activeTab.includes("province")) filterProvince = selectedProvince || PROVINCES[0];
-    if (activeTab.includes("district")) filterDistrict = selectedDistrict || DISTRICTS[0];
-    const sortBy = activeTab === "iq_ranking" ? "iq_marks" : (activeTab === "gk_ranking" ? "gk_marks" : "total_marks");
+    if (activeScope === "province") filterProvince = selectedProvince || PROVINCES[0];
+    if (activeScope === "district") filterDistrict = selectedDistrict || DISTRICTS[0];
+    
+    const sortBy = activeBasis === "iq" ? "iq_marks" : (activeBasis === "gk" ? "gk_marks" : "total_marks");
 
     const response = await getAdminRankings({
       subject: (selectedSubject && selectedSubject !== "ALL_SUBJECTS") ? selectedSubject : undefined,
@@ -50,7 +49,7 @@ export default function Leaderboard() {
 
     if (response.success) setData(response.data || []);
     setLoading(false);
-  }, [activeTab, selectedProvince, selectedDistrict, selectedSubject, selectedCategory]);
+  }, [activeScope, activeBasis, selectedProvince, selectedDistrict, selectedSubject, selectedCategory]);
 
   useEffect(() => {
     const init = async () => {
@@ -82,7 +81,6 @@ export default function Leaderboard() {
       const key = `${student.nic}-${student.category}`;
       if (!nameMap.has(key)) {
         nameMap.set(key, groups.length);
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { nic, subject, ...safeStudent } = student;
         groups.push(safeStudent);
       }
@@ -91,23 +89,29 @@ export default function Leaderboard() {
     let lastScore = -1;
     let lastRank = 1;
     return groups.map((student: Omit<StudentResult, 'nic' | 'subject'>, index) => {
-      const currentScore = activeTab === "iq_ranking" ? (student as any).iq_marks :
-        activeTab === "gk_ranking" ? (student as any).gk_marks : (student as any).total_marks;
+      const currentScore = activeBasis === "iq" ? (student as any).iq_marks :
+        activeBasis === "gk" ? (student as any).gk_marks : (student as any).total_marks;
       if (currentScore !== lastScore) { lastRank = index + 1; lastScore = currentScore; }
       return { ...student, rank: lastRank };
     });
-  }, [data, activeTab]);
-
-  const needsProvinceFilter = activeTab === "province";
-  const needsDistrictFilter = activeTab === "district";
+  }, [data, activeBasis]);
 
   const TABS = [
-    { v: "island", l: "Island", icon: Globe },
-    { v: "province", l: "Province", icon: MapPin },
-    { v: "district", l: "District", icon: Building2 },
-    { v: "iq_ranking", l: "IQ", icon: Brain },
-    { v: "gk_ranking", l: "GK", icon: BookOpen },
+    { v: "island", l: "Island", icon: Globe, type: 'scope' },
+    { v: "province", l: "Province", icon: MapPin, type: 'scope' },
+    { v: "district", l: "District", icon: Building2, type: 'scope' },
+    { v: "iq", l: "IQ", icon: Brain, type: 'basis' },
+    { v: "gk", l: "GK", icon: BookOpen, type: 'basis' },
   ];
+
+  const handleTabClick = (tab: any) => {
+    if (tab.type === 'scope') {
+      setActiveScope(tab.v);
+      setActiveBasis("total"); // Default to total when switching levels
+    } else {
+      setActiveBasis(tab.v);
+    }
+  };
 
   if (!viewRankings) {
     return (
@@ -128,7 +132,6 @@ export default function Leaderboard() {
 
   return (
     <div className="w-full max-w-6xl mx-auto py-8 md:py-12 px-4 md:px-6">
-      {/* Header */}
       <div className="mb-8 flex items-end justify-between">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-2">MeritView AI</p>
@@ -143,17 +146,17 @@ export default function Leaderboard() {
       </div>
 
       <div className="space-y-5">
-        {/* Navigation Tabs */}
-        <div className="w-full max-w-4xl mx-auto mb-10 p-1.5 rounded-2xl bg-white/[0.12] border border-white/30 backdrop-blur-md flex items-center justify-between gap-1 overflow-x-auto no-scrollbar shadow-2xl shadow-black/40">
+        <div className="w-full max-w-4xl mx-auto mb-10 p-1.5 rounded-2xl bg-white/[0.12] border border-white/30 backdrop-blur-md grid grid-cols-6 md:flex items-center justify-between gap-1 shadow-2xl shadow-black/40">
           {TABS.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.v;
+            const isActive = tab.type === 'scope' ? (activeScope === tab.v && activeBasis === 'total') : (activeBasis === tab.v);
             return (
               <button
                 key={tab.v}
-                onClick={() => setActiveTab(tab.v)}
+                onClick={() => handleTabClick(tab)}
                 className={cn(
                   "relative flex-1 flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all min-w-[80px]",
+                  tab.v === "iq" || tab.v === "gk" ? "col-span-3 md:col-span-1" : "col-span-2 md:col-span-1",
                   isActive ? "text-white" : "text-white/85 hover:text-white"
                 )}
               >
@@ -171,13 +174,11 @@ export default function Leaderboard() {
           })}
         </div>
 
-        {/* Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-30">
-          {/* Subject */}
           <div className="relative z-30 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-cyan-500/30 transition-all">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-5 h-5 rounded-lg bg-cyan-500/20 flex items-center justify-center">
-                <BookOpen className="w-3 h-3 text-cyan-400" />
+                <Brain className="w-3 h-3 text-cyan-400" />
               </div>
               <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/50">Subject</p>
             </div>
@@ -190,36 +191,34 @@ export default function Leaderboard() {
             />
           </div>
 
-          {/* Location */}
           <div className={cn(
             "relative z-20 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 transition-all",
-            (needsProvinceFilter || needsDistrictFilter) ? "hover:border-violet-500/30" : "opacity-30 pointer-events-none"
+            (activeScope !== 'island') ? "hover:border-violet-500/30" : "opacity-30 pointer-events-none"
           )}>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-5 h-5 rounded-lg bg-violet-500/20 flex items-center justify-center">
                 <MapPin className="w-3 h-3 text-violet-400" />
               </div>
               <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/50">
-                {needsProvinceFilter ? "Province" : needsDistrictFilter ? "District" : "Location"}
+                {activeScope === 'province' ? "Province" : activeScope === 'district' ? "District" : "Location"}
               </p>
             </div>
             <Select
-              value={needsProvinceFilter ? selectedProvince : selectedDistrict}
-              onValueChange={needsProvinceFilter ? setSelectedProvince : setSelectedDistrict}
-              disabled={!needsProvinceFilter && !needsDistrictFilter}
+              value={activeScope === 'province' ? selectedProvince : selectedDistrict}
+              onValueChange={activeScope === 'province' ? setSelectedProvince : setSelectedDistrict}
+              disabled={activeScope === 'island'}
             >
               <SelectTrigger className="h-11 rounded-xl border border-white/10 bg-white/5 font-bold text-white/80 shadow-none">
-                <SelectValue placeholder={needsProvinceFilter ? "Choose Province" : needsDistrictFilter ? "Choose District" : "Select tab first"} />
+                <SelectValue placeholder={activeScope === 'province' ? "Choose Province" : activeScope === 'district' ? "Choose District" : "Islandwide View"} />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-white/10 bg-slate-900 text-white shadow-2xl">
-                {(needsProvinceFilter ? PROVINCES : DISTRICTS).map((item) => (
+                {(activeScope === 'province' ? PROVINCES : DISTRICTS).map((item) => (
                   <SelectItem key={item} value={item} className="text-white/70 focus:bg-white/10 focus:text-white">{item}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          {/* Category */}
           <div className="relative z-10 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm p-5 hover:border-emerald-500/30 transition-all">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-5 h-5 rounded-lg bg-emerald-500/20 flex items-center justify-center">
@@ -239,199 +238,108 @@ export default function Leaderboard() {
                       : "text-white/30 hover:text-white/60"
                   )}
                 >
-                  {cat === "ALL" ? "All" : cat}
+                  {cat}
                 </button>
               ))}
             </div>
           </div>
         </div>
 
-        {/* Results Table */}
-        <div className="rounded-3xl bg-white/5 border border-white/10 backdrop-blur-sm overflow-hidden relative z-10">
-          {/* Table Header Bar */}
-          <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
-              Results · <span className="text-cyan-400">{rankedData.length} Candidates</span>
-            </p>
-          </div>
-
+        <div className="glass-panel p-1 border-white/10 min-h-[400px]">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-28 gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center">
-                <Loader2 className="w-5 h-5 animate-spin text-cyan-400" />
-              </div>
-              <p className="font-black text-white/30 uppercase tracking-widest text-[10px]">Computing Ranks...</p>
+            <div className="flex flex-col items-center justify-center py-24 gap-4">
+              <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Updating Leaderboard...</p>
             </div>
           ) : rankedData.length === 0 ? (
-            <div className="text-center py-24 px-10">
-              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-5">
-                <SearchIcon className="w-7 h-7 text-white/20" />
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6">
+                <SearchIcon className="w-8 h-8 text-white/20" />
               </div>
-              <h3 className="text-xl font-black text-white/60">No Results Found</h3>
-              <p className="text-white/30 mt-2 font-medium text-sm">Try adjusting your filters.</p>
+              <h3 className="text-xl font-black text-white mb-2">No Results Found</h3>
+              <p className="text-white/30 text-sm font-medium">Try adjusting your filters to find candidates.</p>
             </div>
           ) : (
-            <div className="w-full">
-              {/* Desktop Table */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-b border-white/10 hover:bg-transparent">
-                      <TableHead className="w-[100px] text-center font-black uppercase tracking-widest text-[9px] py-5 text-white/50">Rank</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[9px] text-white/50">Candidate</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[9px] text-white/50">Location</TableHead>
-                      <TableHead className="text-right font-black uppercase tracking-widest text-[9px] pr-10 text-white/50">Score</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <AnimatePresence>
-                      {rankedData.map((student, index) => {
-                        const rs = RANK_STYLES[student.rank - 1];
-                        return (
-                          <motion.tr
-                            key={index}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.03 }}
-                            className={cn(
-                              "group border-b border-white/5 last:border-0 transition-colors",
-                              student.rank === 1 ? "bg-amber-500/5 hover:bg-amber-500/10" :
-                              student.rank === 2 ? "bg-slate-400/5 hover:bg-slate-400/10" :
-                              student.rank === 3 ? "bg-orange-400/5 hover:bg-orange-400/10" :
-                              "hover:bg-white/5"
-                            )}
-                          >
-                            <TableCell className="py-6">
-                              <div className="flex justify-center">
-                                {student.rank <= 3 ? (
-                                  <div className={cn(
-                                    "relative w-12 h-12 rounded-2xl flex items-center justify-center font-black text-white text-sm shadow-xl bg-gradient-to-br",
-                                    RANK_STYLES[student.rank - 1].bg, RANK_STYLES[student.rank - 1].shadow
-                                  )}>
-                                    <span>#{student.rank}</span>
-                                    <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-slate-950 border border-white/10 flex items-center justify-center">
-                                      <Trophy className={cn("w-2.5 h-2.5", RANK_STYLES[student.rank - 1].text)} />
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <span className="font-black text-white/30 text-lg tabular-nums">{student.rank}</span>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-white/10 flex items-center justify-center flex-shrink-0">
-                                  <span className="text-xs font-black text-white/60">
-                                    {student.name?.charAt(0)?.toUpperCase() ?? "?"}
-                                  </span>
-                                </div>
-                                <div>
-                                  <p className="font-black text-white text-base tracking-tight group-hover:text-cyan-300 transition-colors">
-                                    {student.name}
-                                  </p>
-                                  {rankingMode === 'general' && (
-                                    <span className={cn(
-                                      "inline-block px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider mt-0.5",
-                                      student.category === 'limited'
-                                        ? "bg-violet-500/20 text-violet-300 border border-violet-500/20"
-                                        : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/20"
-                                    )}>
-                                      {student.category}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <p className="text-sm font-bold text-white/70">{student.district}</p>
-                              <p className="text-[10px] font-bold text-white/30 uppercase tracking-wider mt-0.5">{student.province}</p>
-                            </TableCell>
-                            <TableCell className="text-right pr-10">
-                              <span className={cn(
-                                "inline-block py-1.5 px-5 rounded-xl font-black text-xl tabular-nums",
-                                student.rank === 1 ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900 shadow-lg shadow-amber-500/30" :
-                                student.rank === 2 ? "bg-gradient-to-r from-slate-300 to-slate-400 text-slate-900 shadow-lg shadow-slate-400/20" :
-                                student.rank === 3 ? "bg-gradient-to-r from-orange-400 to-amber-500 text-slate-900 shadow-lg shadow-orange-400/20" :
-                                "bg-white/10 text-white/80 group-hover:bg-cyan-500/20 group-hover:text-cyan-300 transition-all"
-                              )}>
-                                {activeTab === "iq_ranking" ? student.iq_marks :
-                                  activeTab === "gk_ranking" ? student.gk_marks :
-                                    student.total_marks}
-                              </span>
-                            </TableCell>
-                          </motion.tr>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </TableBody>
-                </Table>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-4">
+                {rankedData.slice(0, 3).map((student, idx) => (
+                  <motion.div
+                    key={student.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    className="relative group"
+                  >
+                    <div className={cn("absolute inset-0 rounded-[32px] blur-xl opacity-20 group-hover:opacity-40 transition-opacity bg-gradient-to-r", RANK_STYLES[idx].bg)} />
+                    <div className="relative h-full glass-panel p-6 border-white/10 flex flex-col items-center text-center">
+                      <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-2xl relative", RANK_STYLES[idx].bg)}>
+                        <Trophy className="w-8 h-8 text-slate-900" />
+                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-slate-900 border-2 border-white flex items-center justify-center text-xs font-black text-white">
+                          #{student.rank}
+                        </div>
+                      </div>
+                      <h4 className="text-lg font-black text-white mb-1">{student.name}</h4>
+                      <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-4">{student.district} · {student.province}</p>
+                      
+                      <div className="mt-auto w-full pt-4 border-t border-white/5 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                           <span className="text-[9px] font-black text-white/30 uppercase tracking-widest">{activeBasis === 'total' ? 'Total' : activeBasis.toUpperCase()} Score</span>
+                           <span className={cn("text-xl font-black tabular-nums", RANK_STYLES[idx].text)}>
+                              {activeBasis === "iq" ? student.iq_marks : activeBasis === "gk" ? student.gk_marks : student.total_marks}
+                           </span>
+                        </div>
+                        <div className={cn("py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.15em]", RANK_STYLES[idx].badge)}>
+                           {activeScope.toUpperCase()} RANK #{student.rank}
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
 
-              {/* Mobile Cards */}
-              <div className="md:hidden divide-y divide-white/5">
-                {rankedData.map((student, index) => {
-                  const rs = RANK_STYLES[student.rank - 1];
-                  return (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.04 }}
-                      className={cn(
-                        "p-4 flex items-center gap-4 transition-colors",
-                        student.rank === 1 ? "bg-amber-500/5" :
-                        student.rank === 2 ? "bg-slate-400/5" :
-                        student.rank === 3 ? "bg-orange-400/5" : ""
-                      )}
-                    >
-                      <div className="flex-shrink-0 w-12 flex justify-center">
-                        {student.rank <= 3 ? (
-                          <div className={cn(
-                            "w-11 h-11 rounded-xl flex items-center justify-center font-black text-white text-sm shadow-lg bg-gradient-to-br",
-                            RANK_STYLES[student.rank - 1].bg
-                          )}>
-                            #{student.rank}
-                          </div>
-                        ) : (
-                          <span className="font-black text-lg text-white/30 tabular-nums">{student.rank}</span>
-                        )}
-                      </div>
-
-                      <div className="flex-grow min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-black text-white text-sm truncate">{student.name}</p>
-                          {rankingMode === 'general' && (
-                            <span className={cn(
-                              "flex-shrink-0 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-tight",
-                              student.category === 'limited'
-                                ? "bg-violet-500/20 text-violet-300"
-                                : "bg-cyan-500/20 text-cyan-300"
-                            )}>
-                              {student.category}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[10px] font-bold text-white/30 uppercase tracking-wide mt-0.5">
-                          {student.district} · {student.province}
-                        </p>
-                      </div>
-
-                      <div className="flex-shrink-0">
-                        <div className={cn(
-                          "px-4 py-1.5 rounded-xl font-black text-base tabular-nums",
-                          student.rank === 1 ? "bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-900" :
-                          student.rank === 2 ? "bg-gradient-to-r from-slate-300 to-slate-400 text-slate-900" :
-                          student.rank === 3 ? "bg-gradient-to-r from-orange-400 to-amber-500 text-slate-900" :
-                          "bg-white/10 text-white/70"
+              <div className="p-4 space-y-2">
+                {rankedData.slice(3).map((student, idx) => (
+                  <motion.div
+                    key={student.name}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: (idx % 10) * 0.05 }}
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all group"
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center font-black text-white/30 text-sm tabular-nums group-hover:text-white transition-colors">
+                      #{student.rank}
+                    </div>
+                    
+                    <div className="flex-grow min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-black text-white text-sm truncate">{student.name}</p>
+                        <span className={cn(
+                          "flex-shrink-0 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-tight",
+                          student.category === 'limited' ? "bg-violet-500/20 text-violet-300" : "bg-cyan-500/20 text-cyan-300"
                         )}>
-                          {activeTab === "iq_ranking" ? student.iq_marks :
-                            activeTab === "gk_ranking" ? student.gk_marks :
-                              student.total_marks}
-                        </div>
+                          {student.category}
+                        </span>
                       </div>
-                    </motion.div>
-                  );
-                })}
+                      <p className="text-[10px] font-bold text-white/30 uppercase tracking-wide mt-0.5">
+                        {student.district} · {student.province}
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0 flex items-center gap-6">
+                      <div className="hidden sm:flex flex-col items-end">
+                         <span className="text-[8px] font-black text-white/20 uppercase tracking-widest">
+                            {activeBasis === 'total' ? 'Total Merit' : activeBasis.toUpperCase()}
+                         </span>
+                         <span className="font-black text-white/80 tabular-nums">
+                            {activeBasis === "iq" ? student.iq_marks : activeBasis === "gk" ? student.gk_marks : student.total_marks}
+                         </span>
+                      </div>
+                      <div className="px-4 py-1.5 rounded-xl bg-white/10 text-white/70 font-black text-base tabular-nums">
+                        #{student.rank}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
           )}
